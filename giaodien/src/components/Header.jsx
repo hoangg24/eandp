@@ -9,8 +9,9 @@ const Header = () => {
     <header className="bg-gradient-to-r from-indigo-600 to-indigo-800 shadow-lg">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <nav className="flex justify-between items-center h-16">
-          {/* Logo & Brand */}
-          <div className="flex-shrink-0 flex items-center">
+          {/* Logo & Navigation Links */}
+          <div className="flex items-center space-x-6">
+            {/* Logo */}
             <Link to="/" className="flex items-center space-x-2">
               <svg
                 className="h-8 w-8 text-indigo-300"
@@ -27,13 +28,31 @@ const Header = () => {
               </svg>
               <span className="text-xl font-bold text-white">EANDP</span>
             </Link>
+
+            {/* Navigation Links */}
+            {user && (
+              <>
+                <Link
+                  to="/events/create"
+                  className="text-indigo-100 hover:text-white transition-colors duration-150 ease-in-out text-sm font-medium"
+                >
+                  Create Event
+                </Link>
+                <Link
+                  to="/eventlist"
+                  className="text-indigo-100 hover:text-white transition-colors duration-150 ease-in-out text-sm font-medium"
+                >
+                  Danh Sách Sự Kiện
+                </Link>
+              </>
+            )}
           </div>
 
-          {/* Navigation Items */}
+          {/* User Section */}
           <div className="flex items-center space-x-4">
-
             {user ? (
               <div className="flex items-center space-x-4">
+                {/* User Info */}
                 <div className="flex items-center space-x-2">
                   <div className="h-8 w-8 rounded-full bg-indigo-400 flex items-center justify-center">
                     <span className="text-sm font-medium text-white">
@@ -44,6 +63,7 @@ const Header = () => {
                     {user.username}
                   </span>
                 </div>
+                {/* Logout Button */}
                 <button
                   onClick={logout}
                   className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-500 hover:bg-indigo-400 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-colors duration-150 ease-in-out"

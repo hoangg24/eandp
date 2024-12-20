@@ -1,47 +1,58 @@
 import axios from 'axios';
 
-const API_URL = 'http://localhost:3364/api/event';
+const API_URL = 'http://localhost:5000/api/services';
 
-// Lấy danh sách dịch vụ của một sự kiện
-export const getServices = async (eventId) => {
+// Lấy danh sách tất cả dịch vụ
+export const getAllServices = async () => {
     try {
-        const response = await axios.get(`${API_URL}/${eventId}`);
-        return response.data.services;
+        const response = await axios.get(`${API_URL}`);
+        return response.data;
     } catch (error) {
-        console.error('Lỗi khi lấy danh sách dịch vụ:', error);
+        console.error('Lỗi khi lấy danh sách dịch vụ:', error.response?.data || error.message);
         throw error;
     }
 };
 
-// Thêm dịch vụ vào sự kiện
-export const addService = async (eventId, data) => {
+// Lấy dịch vụ theo ID
+export const getServiceById = async (id) => {
     try {
-        const response = await axios.post(`${API_URL}/${eventId}/add-service`, data);
+        const response = await axios.get(`${API_URL}/${id}`);
         return response.data;
     } catch (error) {
-        console.error('Lỗi khi thêm dịch vụ:', error);
+        console.error('Lỗi khi lấy dịch vụ theo ID:', error.response?.data || error.message);
         throw error;
     }
 };
 
-// Xóa dịch vụ khỏi sự kiện
-export const deleteService = async (eventId, serviceName) => {
+// Tạo dịch vụ mới
+export const createService = async (data) => {
     try {
-        const response = await axios.delete(`${API_URL}/${eventId}/remove-service/${serviceName}`);
+        const response = await axios.post(`${API_URL}/create`, data);
         return response.data;
     } catch (error) {
-        console.error('Lỗi khi xóa dịch vụ:', error);
+        console.error('Lỗi khi tạo dịch vụ mới:', error.response?.data || error.message);
         throw error;
     }
 };
 
-// Cập nhật thông tin dịch vụ
-export const updateService = async (eventId, serviceName, data) => {
+// Cập nhật dịch vụ
+export const updateService = async (id, data) => {
     try {
-        const response = await axios.put(`${API_URL}/${eventId}/update-service/${serviceName}`, data);
+        const response = await axios.put(`${API_URL}/${id}`, data);
         return response.data;
     } catch (error) {
-        console.error('Lỗi khi cập nhật dịch vụ:', error);
+        console.error('Lỗi khi cập nhật dịch vụ:', error.response?.data || error.message);
+        throw error;
+    }
+};
+
+// Xóa dịch vụ
+export const deleteService = async (id) => {
+    try {
+        const response = await axios.delete(`${API_URL}/${id}`);
+        return response.data;
+    } catch (error) {
+        console.error('Lỗi khi xóa dịch vụ:', error.response?.data || error.message);
         throw error;
     }
 };

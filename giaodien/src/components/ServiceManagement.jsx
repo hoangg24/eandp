@@ -1,131 +1,207 @@
 import React, { useState, useEffect } from 'react';
-import { getServices, addService, deleteService } from '../services/serviceService';
-import { useParams, useNavigate } from 'react-router-dom';
+import {
+  getAllServices,
+  createService,
+  updateService,
+  deleteService,
+} from '../services/serviceService';
+import AdminLayout from '../components/AdminLayout'; // Import AdminLayout
 
 const ServiceManagement = () => {
-    const { eventId } = useParams();
-    const [services, setServices] = useState([]);
-    const [service, setService] = useState({ name: '', quantity: 0 });
-    const navigate = useNavigate();
+  const [services, setServices] = useState([]);
+  const [serviceForm, setServiceForm] = useState({
+    name: '',
+    description: '',
+    quantity: 0,
+    price: 0,
+  });
+  const [editingServiceId, setEditingServiceId] = useState(null);
 
-    useEffect(() => {
+  useEffect(() => {
+    fetchServices();
+  }, []);
+
+  const fetchServices = async () => {
+    try {
+      const data = await getAllServices();
+      setServices(data);
+    } catch (error) {
+      console.error('Lỗi khi tải danh sách dịch vụ:', error);
+      alert('Không thể tải danh sách dịch vụ!');
+    }
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    try {
+      if (editingServiceId) {
+        await updateService(editingServiceId, serviceForm);
+        alert('Cập nhật dịch vụ thành công!');
+      } else {
+        await createService(serviceForm);
+        alert('Thêm dịch vụ thành công!');
+      }
+      resetForm();
+      fetchServices();
+    } catch (error) {
+      console.error('Lỗi khi thêm/cập nhật dịch vụ:', error);
+      alert('Không thể thêm/cập nhật dịch vụ!');
+    }
+  };
+
+  const handleDelete = async (id) => {
+    if (window.confirm('Bạn có chắc chắn muốn xóa dịch vụ này không?')) {
+      try {
+        await deleteService(id);
+        alert('Xóa dịch vụ thành công!');
         fetchServices();
-    }, []);
+      } catch (error) {
+        console.error('Lỗi khi xóa dịch vụ:', error);
+        alert('Không thể xóa dịch vụ!');
+      }
+    }
+  };
 
-    const fetchServices = async () => {
-        try {
-            const data = await getServices(eventId);
-            setServices(data);
-        } catch (error) {
-            alert('Không thể tải danh sách dịch vụ!');
-        }
-    };
+  const handleEdit = (service) => {
+    setServiceForm({
+      name: service.name,
+      description: service.description,
+      quantity: service.quantity,
+      price: service.price,
+    });
+    setEditingServiceId(service._id);
+  };
 
-    const handleAddService = async (e) => {
-        e.preventDefault();
-        try {
-            await addService(eventId, service);
-            alert('Thêm dịch vụ thành công!');
-            setService({ name: '', quantity: 0 });
-            fetchServices();
-        } catch (error) {
-            alert('Không thể thêm dịch vụ!');
-        }
-    };
+  const resetForm = () => {
+    setServiceForm({ name: '', description: '', quantity: 0, price: 0 });
+    setEditingServiceId(null);
+  };
 
-    const handleDeleteService = async (serviceName) => {
-        if (window.confirm(`Bạn có chắc chắn muốn xóa dịch vụ "${serviceName}" không?`)) {
-            try {
-                await deleteService(eventId, serviceName);
-                alert('Xóa dịch vụ thành công!');
-                fetchServices();
-            } catch (error) {
-                alert('Không thể xóa dịch vụ!');
-            }
-        }
-    };
+  return (
+    <AdminLayout>
+      <div className="container mx-auto">
+        <h2 className="text-4xl font-bold text-center text-transparent bg-clip-text bg-gradient-to-r from-purple-600 to-pink-600 mb-8">
+          Quản Lý Dịch Vụ
+        </h2>
 
-    const handleNavigateToDetails = (serviceName) => {
-        navigate(`/events/${eventId}/${serviceName}/details`);
-    };
-
-    return (
-        <div className="min-h-screen bg-gradient-to-br from-blue-50 via-purple-50 to-pink-50 p-8">
-            {/* Header */}
-            <div className="text-center mb-16">
-                <h1 className="text-4xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-purple-600 to-pink-600">
-                    Quản lý dịch vụ
-                </h1>
-                <p className="text-lg text-gray-600 mt-4">
-                    Thêm, xóa, và quản lý các dịch vụ trong sự kiện
-                </p>
+        {/* Form thêm/cập nhật dịch vụ */}
+        <form
+          onSubmit={handleSubmit}
+          className="bg-white p-6 rounded-xl shadow-lg mb-10"
+        >
+          <h3 className="text-2xl font-semibold text-gray-700 mb-6">
+            {editingServiceId ? 'Cập nhật dịch vụ' : 'Thêm dịch vụ mới'}
+          </h3>
+          <div className="space-y-4">
+            <input
+              type="text"
+              placeholder="Tên dịch vụ"
+              value={serviceForm.name}
+              onChange={(e) =>
+                setServiceForm({ ...serviceForm, name: e.target.value })
+              }
+              required
+              className="w-full p-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-600"
+            />
+            <textarea
+              placeholder="Mô tả dịch vụ"
+              value={serviceForm.description}
+              onChange={(e) =>
+                setServiceForm({ ...serviceForm, description: e.target.value })
+              }
+              className="w-full p-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-600"
+            />
+            <input
+              type="number"
+              placeholder="Số lượng"
+              value={serviceForm.quantity}
+              onChange={(e) =>
+                setServiceForm({
+                  ...serviceForm,
+                  quantity: parseInt(e.target.value) || 0,
+                })
+              }
+              required
+              min="0"
+              className="w-full p-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-600"
+            />
+            <div className="flex items-center">
+              <input
+                type="text"
+                placeholder="Giá dịch vụ"
+                value={serviceForm.price}
+                onChange={(e) => {
+                  const value = e.target.value.replace(/[^0-9]/g, '');
+                  setServiceForm({
+                    ...serviceForm,
+                    price: parseFloat(value) || 0,
+                  });
+                }}
+                required
+                className="w-full p-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-600"
+              />
+              <span className="ml-2">VNĐ</span>
             </div>
-
-            {/* Form thêm dịch vụ */}
-            <form
-                onSubmit={handleAddService}
-                className="bg-white p-6 rounded-xl shadow-lg max-w-3xl mx-auto mb-16"
+          </div>
+          <div className="flex gap-4 mt-6">
+            <button
+              type="submit"
+              className="bg-purple-600 text-white px-6 py-3 rounded-lg hover:bg-purple-700 transition-all"
             >
-                <h2 className="text-2xl font-semibold text-gray-700 mb-6">Thêm dịch vụ mới</h2>
-                <div className="space-y-4">
-                    <input
-                        type="text"
-                        placeholder="Tên dịch vụ"
-                        value={service.name}
-                        onChange={(e) => setService({ ...service, name: e.target.value })}
-                        required
-                        className="w-full p-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-600"
-                    />
-                    <input
-                        type="number"
-                        placeholder="Số lượng"
-                        value={service.quantity}
-                        onChange={(e) => setService({ ...service, quantity: parseInt(e.target.value) || 0 })}
-                        required
-                        className="w-full p-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-600"
-                    />
-                </div>
-                <button
-                    type="submit"
-                    className="w-full mt-6 bg-purple-600 text-white py-3 rounded-lg hover:bg-purple-700 transition-all"
-                >
-                    Thêm dịch vụ
-                </button>
-            </form>
+              {editingServiceId ? 'Cập nhật' : 'Thêm'}
+            </button>
+            {editingServiceId && (
+              <button
+                type="button"
+                onClick={resetForm}
+                className="bg-gray-500 text-white px-6 py-3 rounded-lg hover:bg-gray-600 transition-all"
+              >
+                Hủy
+              </button>
+            )}
+          </div>
+        </form>
 
-            {/* Danh sách dịch vụ */}
-            <div className="max-w-4xl mx-auto">
-                <h3 className="text-2xl font-semibold text-gray-700 mb-6">Danh sách dịch vụ</h3>
-                <ul className="space-y-4">
-                    {services.map((s, index) => (
-                        <li
-                            key={index}
-                            className="bg-white p-4 rounded-lg shadow flex justify-between items-center"
-                        >
-                            <div>
-                                <h4 className="text-lg font-bold">{s.name}</h4>
-                                <p className="text-gray-600">Số lượng: {s.quantity}</p>
-                            </div>
-                            <div className="flex gap-4">
-                                <button
-                                    onClick={() => handleNavigateToDetails(s.name)}
-                                    className="bg-green-500 text-white px-4 py-2 rounded-lg hover:bg-green-600"
-                                >
-                                    Quản lý chi tiết
-                                </button>
-                                <button
-                                    onClick={() => handleDeleteService(s.name)}
-                                    className="bg-red-500 text-white px-4 py-2 rounded-lg hover:bg-red-600"
-                                >
-                                    Xóa
-                                </button>
-                            </div>
-                        </li>
-                    ))}
-                </ul>
-            </div>
+        {/* Danh sách dịch vụ */}
+        <div className="bg-white p-6 rounded-xl shadow-lg">
+          <h3 className="text-2xl font-semibold text-gray-700 mb-6">
+            Danh sách dịch vụ
+          </h3>
+          <ul className="space-y-4">
+            {services.map((service) => (
+              <li
+                key={service._id}
+                className="bg-white p-4 rounded-lg shadow flex justify-between items-center"
+              >
+                <div>
+                  <h4 className="text-lg font-bold">{service.name}</h4>
+                  <p className="text-gray-600">{service.description}</p>
+                  <p className="text-gray-700">
+                    Số lượng: {service.quantity} - Giá:{' '}
+                    {service.price.toLocaleString()} VND
+                  </p>
+                </div>
+                <div className="flex gap-4">
+                  <button
+                    onClick={() => handleEdit(service)}
+                    className="bg-yellow-500 text-white px-4 py-2 rounded-lg hover:bg-yellow-600"
+                  >
+                    Sửa
+                  </button>
+                  <button
+                    onClick={() => handleDelete(service._id)}
+                    className="bg-red-500 text-white px-4 py-2 rounded-lg hover:bg-red-600"
+                  >
+                    Xóa
+                  </button>
+                </div>
+              </li>
+            ))}
+          </ul>
         </div>
-    );
+      </div>
+    </AdminLayout>
+  );
 };
 
 export default ServiceManagement;

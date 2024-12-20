@@ -9,12 +9,24 @@ const serviceController={
     res.status(500).json({ message: "Lỗi khi lấy danh sách dịch vụ", error });
   }
 },
-
+   getServiceById : async (req, res) => {
+      try {
+          const { id } = req.params;
+          const services = await Service.findById(id); 
+          if (!services) {
+              return res.status(404).json({ message: 'Không tìm thấy sự kiện!' });
+          }
+          res.status(200).json(services);
+      } catch (error) {
+          console.error(error);
+          res.status(500).json({ message: 'Lỗi khi lấy sự kiện!' });
+      }
+  },
 // Tạo dịch vụ mới
     createService : async (req, res) => {
   try {
-    const { name, description, price } = req.body;
-    const newService = new Service({ name, description, price });
+    const { name, description,quantity, price } = req.body;
+    const newService = new Service({ name, description,quantity,price });
     await newService.save();
     res.status(201).json(newService);
   } catch (error) {
@@ -26,10 +38,10 @@ const serviceController={
     updateService : async (req, res) => {
   try {
     const { id } = req.params;
-    const { name, description, price } = req.body;
+    const { name, description,quantity, price } = req.body;
     const updatedService = await Service.findByIdAndUpdate(
       id,
-      { name, description, price },
+      { name, description,quantity,price },
       { new: true }
     );
     res.status(200).json(updatedService);

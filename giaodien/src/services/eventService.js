@@ -1,6 +1,6 @@
 import axios from 'axios';
 
-const API_URL = 'http://localhost:3364/api/event';
+const API_URL = 'http://localhost:5000/api/event';
 
 // Lấy danh sách sự kiện
 export const getEvents = async () => {
@@ -13,24 +13,13 @@ export const getEvents = async () => {
     }
 };
 
-// Tạo sự kiện mới
+// Tạo sự kiện mới với danh sách dịch vụ
 export const createEvent = async (data) => {
     try {
         const response = await axios.post(`${API_URL}/create`, data);
         return response.data;
     } catch (error) {
         console.error('Lỗi khi tạo sự kiện:', error);
-        throw error;
-    }
-};
-
-// Cập nhật sự kiện
-export const updateEvent = async (id, data) => {
-    try {
-        const response = await axios.put(`${API_URL}/${id}`, data);
-        return response.data;
-    } catch (error) {
-        console.error('Lỗi khi cập nhật sự kiện:', error);
         throw error;
     }
 };
@@ -42,6 +31,27 @@ export const deleteEvent = async (id) => {
         return response.data;
     } catch (error) {
         console.error('Lỗi khi xóa sự kiện:', error);
+        throw error;
+    }
+};
+
+// Thêm hoặc cập nhật dịch vụ vào sự kiện
+export const addServiceToEvent = async (eventId, serviceData) => {
+    try {
+        const response = await axios.put(`${API_URL}/${eventId}/add-service`, serviceData);
+        return response.data;
+    } catch (error) {
+        console.error('Lỗi khi thêm dịch vụ vào sự kiện:', error);
+        throw error;
+    }
+};
+
+export const updateEvent = async (eventId, updatedData) => {
+    try {
+        const response = await axios.put(`${API_URL}/${eventId}`, updatedData);
+        return response.data;
+    } catch (error) {
+        console.error('Lỗi khi cập nhật sự kiện:', error);
         throw error;
     }
 };

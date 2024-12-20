@@ -9,32 +9,40 @@ import Unauthorized from "./pages/Unauthorized.jsx"; // Import trang Unauthorize
 import ProtectedRoute from "./components/ProtectedRoute.jsx"; // Import ProtectedRoute
 import EventManagement from './components/EventManagement.jsx'; 
 import ServiceManagement from './components/ServiceManagement.jsx'; 
-import ServiceDetailManagement from './components/ServiceDetailManagement.jsx'; 
-
+import Invoice from './components/Invoice.jsx';
+import EventList from './components/EventList.jsx';
+import EventDetails from './components/EventDetails.jsx';
+import InvoiceManagement from './components/InvoiceManagement.jsx';
+import InvoiceDetails from './components/InvoiceDetails.jsx';
+import CreateEvent from './components/CreateEvent.jsx';
 const App = () => {
   return (
     <Routes>
-      <Route path="/" element={<Layout />}>
-        <Route index element={<Home />} />
-        <Route path="register" element={<Register />} />
-        <Route path="login" element={<Login />} />
-        <Route path="/events" element={<EventManagement />} /> 
-        <Route path="/events/:eventId/services" element={<ServiceManagement />} /> 
-        <Route path="/events/:eventId/:serviceName/details" element={<ServiceDetailManagement />} /> 
-      </Route>
+  <Route path="/" element={<Layout />}>
+    <Route index element={<Home />} />
+    <Route path="register" element={<Register />} />
+    <Route path="login" element={<Login />} />
+    <Route path="events" element={<EventManagement />} />
+    <Route path="services" element={<ServiceManagement />} />
+    <Route path="events/:eventId/invoices" element={<Invoice />} />
+    <Route path="eventlist" element={<EventList />} />
+    <Route path="events/:eventId" element={<EventDetails />} />
+    <Route path="invoices" element={<InvoiceManagement />} />
+    <Route path="invoices/:id" element={<InvoiceDetails />} />
+    <Route path="events/create" element={<CreateEvent />} />
+  </Route>
 
-      {/* Route cho admin, chỉ cho phép admin truy cập */}
-      <Route path="admin" element={
-        <ProtectedRoute requiredRole="admin">
-          <AdminDashboard />
-        </ProtectedRoute>
-      }>
-        <Route path="users" element={<UserManagement />} />
-      </Route>
+  <Route path="admin" element={
+    <ProtectedRoute requiredRole="admin">
+      <AdminDashboard />
+    </ProtectedRoute>
+  }>
+    <Route path="users" element={<UserManagement />} />
+  </Route>
 
-      {/* Route cho trang Unauthorized */}
-      <Route path="/unauthorized" element={<Unauthorized />} />
-    </Routes>
+  <Route path="unauthorized" element={<Unauthorized />} />
+</Routes>
+
   );
 };
 

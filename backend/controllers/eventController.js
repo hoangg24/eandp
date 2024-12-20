@@ -1,33 +1,69 @@
 import Event from '../models/eventModel.js';
-import ServiceDetail from '../models/servicedetailModel.js';
+import Service from '../models/service.js';
+import Invoice from '../models/invoiceModel.js';
 
 // Thêm sự kiện mới
 const eventController ={
-    createEvent : async (req, res) => {
-    try {
-        const { name, date,category, location, services } = req.body;
-
-        // Validate dữ liệu
-        if (!name || !date || !category|| !location || !services || !Array.isArray(services)) {
-            return res.status(400).json({ message: 'Dữ liệu không hợp lệ!' });
+    createEvent: async (req, res) => {
+        try {
+            const { name, date, category, location, services } = req.body;
+    
+            // Kiểm tra và lấy thông tin dịch vụ từ DB
+            const populatedServices = await Promise.all(
+                services.map(async (s) => {
+                    const serviceData = await Service.findById(s.service);
+                    if (!serviceData) {
+                        throw new Error(`Dịch vụ với ID ${s.service} không tồn tại.`);
+                    }
+                    return {
+                        service: s.service,
+                        quantity: s.quantity,
+                        price: serviceData.price, // Lấy giá từ DB
+                    };
+                })
+            );
+    
+            console.log("Dịch vụ populate:", populatedServices); // Log kết quả populate
+    
+            // Tạo sự kiện mới
+            const newEvent = new Event({
+                name,
+                date,
+                category,
+                location,
+                services: populatedServices.map((s) => ({
+                    service: s.service,
+                    quantity: s.quantity,
+                })),
+            });
+            const savedEvent = await newEvent.save();
+    
+            // Tính tổng tiền hóa đơn
+            const totalAmount = populatedServices.reduce(
+                (sum, s) => sum + s.quantity * s.price,
+                0
+            );
+    
+            // Tạo hóa đơn mới
+            const newInvoice = new Invoice({
+                event: savedEvent._id,
+                services: populatedServices,
+                totalAmount,
+            });
+            await newInvoice.save();
+    
+            res.status(201).json({
+                message: 'Sự kiện và hóa đơn đã được tạo thành công!',
+                event: savedEvent,
+                invoice: newInvoice,
+            });
+        } catch (error) {
+            console.error('Lỗi khi tạo sự kiện và hóa đơn:', error.message);
+            res.status(500).json({ message: 'Lỗi khi tạo sự kiện và hóa đơn!', error: error.message });
         }
-
-        // Tạo sự kiện mới
-        const newEvent = new Event({
-            name,
-            date,
-            category,
-            location,
-            services,
-        });
-
-        await newEvent.save();
-        res.status(201).json({ message: 'Sự kiện đã được tạo thành công!', event: newEvent });
-    } catch (error) {
-        console.error(error);
-        res.status(500).json({ message: 'Đã xảy ra lỗi khi thêm sự kiện!' });
-    }
-},
+    },
+    
+    
      getEvents : async (req, res) => {
     try {
         const events = await Event.find(); // Lấy toàn bộ sự kiện
@@ -41,7 +77,7 @@ const eventController ={
      getEventById : async (req, res) => {
     try {
         const { id } = req.params;
-        const event = await Event.findById(id); // Lấy sự kiện theo ID
+        const event = await Event.findById(id).populate('services.service', 'name price'); // Lấy sự kiện theo ID
         if (!event) {
             return res.status(404).json({ message: 'Không tìm thấy sự kiện!' });
         }
@@ -54,16 +90,16 @@ const eventController ={
      updateEvent : async (req, res) => {
     try {
         const { id } = req.params;
-        const { name, date, location, services } = req.body;
+        const { name, date, category, location, services } = req.body;
 
         // Validate dữ liệu
-        if (!name || !date || !location || !services || !Array.isArray(services)) {
+        if (!name || !date || !location || !category || !services || !Array.isArray(services)) {
             return res.status(400).json({ message: 'Dữ liệu không hợp lệ!' });
         }
 
         const updatedEvent = await Event.findByIdAndUpdate(
             id,
-            { name, date, location, services },
+            { name, date,category, location, services },
             { new: true } // Trả về sự kiện đã cập nhật
         );
 
@@ -92,183 +128,150 @@ const eventController ={
         res.status(500).json({ message: 'Lỗi khi xóa sự kiện!' });
     }
 },
-    addServiceToEvent : async (req, res) => {
+     addServiceToEvent : async (req, res) => {
     try {
-        const { id } = req.params; // ID của sự kiện
-        const { name, quantity } = req.body; // Dữ liệu dịch vụ
+        const { eventId } = req.params; // Lấy ID sự kiện
+        const { serviceId, quantity } = req.body; // Lấy serviceId và quantity từ body
 
-        // Validate dữ liệu
-        if (!name || !quantity) {
-            return res.status(400).json({ message: 'Dữ liệu dịch vụ không hợp lệ!' });
-        }
-
-        // Tìm và cập nhật sự kiện
-        const event = await Event.findById(id);
-        if (!event) {
-            return res.status(404).json({ message: 'Không tìm thấy sự kiện!' });
-        }
-
-        // Thêm dịch vụ vào mảng services
-        event.services.push({ name, quantity });
-
-        // Lưu sự kiện
-        await event.save();
-
-        res.status(200).json({ message: 'Thêm dịch vụ thành công!', event });
-    } catch (error) {
-        console.error(error);
-        res.status(500).json({ message: 'Lỗi khi thêm dịch vụ!' });
-    }
-},
-    updateServiceInEvent : async (req, res) => {
-    try {
-        const { id, serviceName } = req.params; // ID sự kiện và tên dịch vụ cần sửa
-        const { name, quantity } = req.body; // Dữ liệu mới cho dịch vụ
-
-        // Tìm sự kiện theo ID
-        const event = await Event.findById(id);
-        if (!event) {
-            return res.status(404).json({ message: 'Không tìm thấy sự kiện!' });
-        }
-
-        // Tìm dịch vụ cần sửa
-        const service = event.services.find((service) => service.name === serviceName);
+        // Kiểm tra dịch vụ có tồn tại không
+        const service = await Service.findById(serviceId);
         if (!service) {
-            return res.status(404).json({ message: 'Không tìm thấy dịch vụ!' });
+            return res.status(404).json({ message: 'Dịch vụ không tồn tại!' });
         }
 
-        // Cập nhật thông tin dịch vụ
-        if (name) service.name = name;
-        if (quantity) service.quantity = quantity;
-
-        // Lưu sự kiện sau khi cập nhật
-        await event.save();
-
-        res.status(200).json({ message: 'Cập nhật dịch vụ thành công!', event });
-    } catch (error) {
-        console.error(error);
-        res.status(500).json({ message: 'Lỗi khi cập nhật dịch vụ!' });
-    }
-},
-    addDetailToService : async (req, res) => {
-    try {
-        const { eventId, serviceName } = req.params; // ID sự kiện và tên dịch vụ
-        const { name, description } = req.body; // Thông tin chi tiết cần thêm
-
-        // Validate dữ liệu
-        if (!name) {
-            return res.status(400).json({ message: 'Tên chi tiết là bắt buộc!' });
-        }
-
-        // Tìm hoặc tạo mới chi tiết dịch vụ cho sự kiện
-        let serviceDetail = await ServiceDetail.findOne({ eventId, serviceName });
-        if (!serviceDetail) {
-            serviceDetail = new ServiceDetail({ eventId, serviceName, details: [] });
-        }
-
-        // Thêm chi tiết mới
-        serviceDetail.details.push({ name, description });
-
-        // Lưu chi tiết dịch vụ
-        await serviceDetail.save();
-
-        res.status(200).json({ message: 'Thêm chi tiết thành công!', serviceDetail });
-    } catch (error) {
-        console.error(error);
-        res.status(500).json({ message: 'Lỗi khi thêm chi tiết!' });
-    }
-},
-    getServiceDetails : async (req, res) => {
-    try {
-        const { eventId, serviceName } = req.params;
-
-        // Tìm chi tiết dịch vụ theo sự kiện và tên dịch vụ
-        const serviceDetail = await ServiceDetail.findOne({ eventId, serviceName });
-        if (!serviceDetail) {
-            return res.status(404).json({ message: 'Không tìm thấy chi tiết của dịch vụ!' });
-        }
-
-        res.status(200).json(serviceDetail);
-    } catch (error) {
-        console.error(error);
-        res.status(500).json({ message: 'Lỗi khi lấy chi tiết dịch vụ!' });
-    }
-},
-    deleteServiceFromEvent : async (req, res) => {
-    try {
-        const { id, serviceName } = req.params; // ID sự kiện và tên dịch vụ cần xóa
-
-        // Tìm sự kiện theo ID
-        const event = await Event.findById(id);
+        // Tìm sự kiện
+        const event = await Event.findById(eventId);
         if (!event) {
-            return res.status(404).json({ message: 'Không tìm thấy sự kiện!' });
+            return res.status(404).json({ message: 'Sự kiện không tồn tại!' });
         }
 
-        // Xóa dịch vụ khỏi danh sách
-        event.services = event.services.filter((service) => service.name !== serviceName);
-
-        // Lưu sự kiện sau khi cập nhật
+        // Thêm dịch vụ vào mảng services với quantity
+        event.services.push({ service: serviceId, quantity });
         await event.save();
 
-        res.status(200).json({ message: 'Xóa dịch vụ thành công!', event });
+        // Populate để lấy thông tin chi tiết dịch vụ và trả về
+        const updatedEvent = await Event.findById(eventId).populate('services.service', 'name description price');
+
+        return res.status(200).json({
+            message: 'Dịch vụ đã được thêm vào sự kiện',
+            event: updatedEvent,
+        });
     } catch (error) {
-        console.error(error);
-        res.status(500).json({ message: 'Lỗi khi xóa dịch vụ!' });
+        console.error('Lỗi server:', error.message);
+        return res.status(500).json({ message: 'Lỗi server!', error: error.message });
     }
 },
-    deleteServiceDetail : async (req, res) => {
-    try {
-        const { eventId, serviceName, detailName } = req.params; // ID sự kiện, tên dịch vụ, và tên chi tiết
 
-        // Tìm chi tiết dịch vụ
-        const serviceDetail = await ServiceDetail.findOne({ eventId, serviceName });
-        if (!serviceDetail) {
-            return res.status(404).json({ message: 'Không tìm thấy dịch vụ!' });
+     removeServiceFromEvent : async (req, res) => {
+    try {
+        const { eventId, serviceId } = req.params;
+
+        // Tìm sự kiện
+        const event = await Event.findById(eventId);
+        if (!event) {
+            return res.status(404).json({ message: 'Sự kiện không tồn tại!' });
         }
 
-        // Xóa chi tiết khỏi danh sách
-        serviceDetail.details = serviceDetail.details.filter((detail) => detail.name !== detailName);
+        // Xóa dịch vụ khỏi mảng services
+        event.services = event.services.filter(
+            (service) => service.service.toString() !== serviceId
+        );
 
-        // Lưu thay đổi
-        await serviceDetail.save();
+        await event.save();
 
-        res.status(200).json({ message: 'Xóa chi tiết thành công!', serviceDetail });
+        // Populate để gửi lại thông tin chi tiết sự kiện
+        const updatedEvent = await Event.findById(eventId).populate('services.service', 'name description price');
+
+        return res.status(200).json({
+            message: 'Dịch vụ đã được xóa khỏi sự kiện',
+            event: updatedEvent,
+        });
     } catch (error) {
-        console.error(error);
-        res.status(500).json({ message: 'Lỗi khi xóa chi tiết!' });
+        console.error('Lỗi server:', error.message);
+        return res.status(500).json({ message: 'Lỗi server!', error: error.message });
     }
 },
-    updateDetailInService : async (req, res) => {
+     updateServiceInEvent : async (req, res) => {
     try {
-        const { eventId, serviceName, detailName } = req.params;
-        const { name, description } = req.body;
+        const { eventId, serviceId } = req.params;
+        const { quantity } = req.body; // Số lượng mới
 
-        // Tìm dịch vụ theo eventId và serviceName
-        const serviceDetail = await ServiceDetail.findOne({ eventId, serviceName });
-        if (!serviceDetail) {
-            return res.status(404).json({ message: 'Không tìm thấy dịch vụ!' });
+        // Tìm sự kiện
+        const event = await Event.findById(eventId);
+        if (!event) {
+            return res.status(404).json({ message: 'Sự kiện không tồn tại!' });
         }
 
-        // Tìm chi tiết cần chỉnh sửa
-        const detail = serviceDetail.details.find(detail => detail.name === detailName);
-        if (!detail) {
-            return res.status(404).json({ message: 'Không tìm thấy chi tiết!' });
+        // Cập nhật số lượng dịch vụ
+        const serviceIndex = event.services.findIndex(
+            (service) => service.service.toString() === serviceId
+        );
+
+        if (serviceIndex === -1) {
+            return res.status(404).json({ message: 'Dịch vụ không tồn tại trong sự kiện!' });
         }
 
-        // Cập nhật thông tin
-        if (name) detail.name = name;
-        if (description) detail.description = description;
+        event.services[serviceIndex].quantity = quantity;
 
-        // Lưu lại dữ liệu
-        await serviceDetail.save();
+        await event.save();
 
-        res.status(200).json({ message: 'Cập nhật chi tiết thành công!', serviceDetail });
+        // Populate để gửi lại thông tin chi tiết sự kiện
+        const updatedEvent = await Event.findById(eventId).populate('services.service', 'name description price');
+
+        return res.status(200).json({
+            message: 'Dịch vụ trong sự kiện đã được cập nhật',
+            event: updatedEvent,
+        });
     } catch (error) {
-        console.error(error);
-        res.status(500).json({ message: 'Lỗi khi cập nhật chi tiết!' });
+        console.error('Lỗi server:', error.message);
+        return res.status(500).json({ message: 'Lỗi server!', error: error.message });
+    }
+},
+getInvoiceByEventId: async (req, res) => {
+    try {
+        const { eventId } = req.params;
+
+        // Kiểm tra xem hóa đơn đã tồn tại chưa
+        let invoice = await Invoice.findOne({ event: eventId });
+
+        if (!invoice) {
+            // Lấy thông tin sự kiện
+            const event = await Event.findById(eventId).populate('services.service');
+            if (!event) {
+                return res.status(404).json({ message: 'Không tìm thấy sự kiện!' });
+            }
+
+            // Tính tổng tiền
+            const totalAmount = event.services.reduce(
+                (sum, s) => sum + s.quantity * s.service.price,
+                0
+            );
+
+            // Tạo hóa đơn mới
+            invoice = new Invoice({
+                event: eventId,
+                services: event.services.map((s) => ({
+                    service: s.service._id,
+                    quantity: s.quantity,
+                    price: s.service.price,
+                })),
+                totalAmount,
+            });
+
+            await invoice.save(); // Lưu hóa đơn vào DB
+        }
+
+        // Populate dữ liệu hóa đơn để trả về
+        const populatedInvoice = await Invoice.findById(invoice._id)
+            .populate('event', 'name date category location')
+            .populate('services.service', 'name price');
+
+        res.status(200).json(populatedInvoice);
+    } catch (error) {
+        console.error('Lỗi khi lấy hoặc tạo hóa đơn:', error);
+        res.status(500).json({ message: 'Lỗi máy chủ khi lấy hoặc tạo hóa đơn!' });
     }
 }
-
 }
 export default eventController;
 

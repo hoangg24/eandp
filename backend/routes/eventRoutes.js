@@ -13,20 +13,10 @@ router.get('/:id', eventController.getEventById);
 router.put('/:id', eventController.updateEvent);
 // DELETE: Xóa sự kiện
 router.delete('/:id', eventController.deleteEvent);
-//POST : Thêm dịch vụ vào sự kiện
-router.post('/:id/add-service', eventController.addServiceToEvent);
-// DELETE: Xóa dịch vụ khỏi sự kiện
-router.delete('/:id/remove-service/:serviceName', eventController.deleteServiceFromEvent);
-// PUT: Sửa thông tin dịch vụ của sự kiện
-router.put('/:id/update-service/:serviceName', eventController.updateServiceInEvent);
-// POST: Thêm chi tiết vào dịch vụ
-router.post('/:eventId/:serviceName/add-detail', eventController.addDetailToService);
-// DELETE: Xóa chi tiết của dịch vụ
-router.delete('/:eventId/:serviceName/remove-detail/:detailName', eventController.deleteServiceDetail);
-// PUT: Sửa chi tiết của dịch vụ
-router.put('/:eventId/:serviceName/update-detail/:detailName', eventController.updateDetailInService);
-// GET: Lấy danh sách chi tiết của dịch vụ
-router.get('/:eventId/:serviceName/details', eventController.getServiceDetails);
-
-
+router.post('/:eventId/add-service', eventController.addServiceToEvent);
+// Route xóa dịch vụ
+router.delete('/:eventId/remove-service/:serviceId', eventController.removeServiceFromEvent);
+// Route cập nhật dịch vụ
+router.put('/:eventId/update-service/:serviceId', eventController.updateServiceInEvent);
+router.get('/:eventId/invoice', eventController.getInvoiceByEventId);
 export default router;
