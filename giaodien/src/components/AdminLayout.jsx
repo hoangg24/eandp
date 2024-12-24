@@ -23,6 +23,11 @@ const AdminLayout = ({ children }) => {
               Quản lý dịch vụ
             </Link>
           </li>
+          <li>
+            <Link to="/categories" className="hover:text-indigo-200">
+              Quản lý danh mục
+            </Link>
+          </li>
         </ul>
       </aside>
 

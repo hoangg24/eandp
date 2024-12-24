@@ -5,10 +5,12 @@ import {
   deleteEvent,
   updateEvent,
 } from '../services/eventService';
+import { getCategories } from '../services/categoryService'; // Import category service
 import AdminLayout from '../components/AdminLayout'; // Import AdminLayout
 
 const EventManagement = () => {
   const [events, setEvents] = useState([]);
+  const [categories, setCategories] = useState([]); // State to store categories
   const [eventData, setEventData] = useState({
     name: '',
     date: '',
@@ -19,6 +21,7 @@ const EventManagement = () => {
 
   useEffect(() => {
     fetchEvents();
+    fetchCategories(); // Fetch categories
   }, []);
 
   const fetchEvents = async () => {
@@ -30,29 +33,40 @@ const EventManagement = () => {
     }
   };
 
+  const fetchCategories = async () => {
+    try {
+      const data = await getCategories();
+      setCategories(data);
+    } catch (error) {
+      console.error('Lỗi khi lấy danh sách danh mục:', error);
+    }
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      if (editingEventId) {
-        await updateEvent(editingEventId, {
-          ...eventData,
-          services: [],
-        });
-        alert('Cập nhật sự kiện thành công!');
-      } else {
-        await createEvent({
-          ...eventData,
-          services: [],
-        });
-        alert('Thêm sự kiện thành công!');
-      }
-      resetForm();
-      fetchEvents();
+        console.log('Dữ liệu trước khi gửi:', eventData);
+        if (editingEventId) {
+            await updateEvent(editingEventId, {
+                ...eventData,
+                services: [],
+            });
+            alert('Cập nhật sự kiện thành công!');
+        } else {
+            await createEvent({
+                ...eventData,
+                services: [],
+            });
+            alert('Thêm sự kiện thành công!');
+        }
+        resetForm();
+        fetchEvents();
     } catch (error) {
-      console.error('Lỗi khi tạo/cập nhật sự kiện:', error);
-      alert('Không thể tạo/cập nhật sự kiện!');
+        console.error('Lỗi chi tiết:', error.response?.data || error.message);
+        alert('Không thể tạo/cập nhật sự kiện! Vui lòng kiểm tra lại.');
     }
-  };
+};
+
 
   const handleEdit = (event) => {
     setEventData({
@@ -112,16 +126,21 @@ const EventManagement = () => {
             className="border border-gray-300 p-3 mb-4 w-full rounded"
             required
           />
-          <input
-            type="text"
-            placeholder="Thể loại"
+          <select
             value={eventData.category}
             onChange={(e) =>
               setEventData({ ...eventData, category: e.target.value })
             }
             className="border border-gray-300 p-3 mb-4 w-full rounded"
             required
-          />
+          >
+            <option value="">-- Chọn Thể Loại --</option>
+            {categories.map((category) => (
+              <option key={category._id} value={category._id}>
+                {category.name}
+              </option>
+            ))}
+          </select>
           <input
             type="text"
             placeholder="Địa điểm"
@@ -168,7 +187,7 @@ const EventManagement = () => {
                     <p className="text-gray-600">
                       Ngày: {new Date(e.date).toLocaleDateString()}
                     </p>
-                    <p className="text-gray-600">Thể loại: {e.category}</p>
+                    {/* <p className="text-gray-600">Thể loại: {e.category}</p> */}
                     <p className="text-gray-600">Địa điểm: {e.location}</p>
                   </div>
                   <div className="flex gap-4">

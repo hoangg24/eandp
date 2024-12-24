@@ -15,6 +15,7 @@ import EventDetails from './components/EventDetails.jsx';
 import InvoiceManagement from './components/InvoiceManagement.jsx';
 import InvoiceDetails from './components/InvoiceDetails.jsx';
 import CreateEvent from './components/CreateEvent.jsx';
+import CategoryManagement from './components/CategoryManagement.jsx';
 const App = () => {
   return (
     <Routes>
@@ -30,6 +31,7 @@ const App = () => {
     <Route path="invoices" element={<InvoiceManagement />} />
     <Route path="invoices/:id" element={<InvoiceDetails />} />
     <Route path="events/create" element={<CreateEvent />} />
+    <Route path="categories" element={<CategoryManagement />} />
   </Route>
 
   <Route path="admin" element={

@@ -50,7 +50,7 @@ const Invoice = () => {
                 eventId: eventId, // ID sự kiện
             });
             alert('Hóa đơn đã được tạo thành công!');
-            navigate('/invoices'); // Chuyển hướng tới danh sách hóa đơn
+            navigate('/eventlist'); // Chuyển hướng tới danh sách hóa đơn
         } catch (error) {
             console.error('Lỗi khi tạo hóa đơn:', error);
             alert('Không thể tạo hóa đơn!');

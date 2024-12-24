@@ -7,7 +7,9 @@ const EventDetails = () => {
   const navigate = useNavigate();
   const [event, setEvent] = useState(null);
   const [services, setServices] = useState([]);
+  const [categories, setCategories] = useState([]); // Fetch categories from the backend
   const [selectedService, setSelectedService] = useState(null);
+  const [selectedCategory, setSelectedCategory] = useState(''); // Selected category
   const [quantity, setQuantity] = useState(1);
   const [isEditing, setIsEditing] = useState(null);
   const [editingQuantity, setEditingQuantity] = useState(1);
@@ -15,12 +17,14 @@ const EventDetails = () => {
   useEffect(() => {
     fetchEventDetails();
     fetchServices();
+    fetchCategories();
   }, [eventId]);
 
   const fetchEventDetails = async () => {
     try {
       const response = await axios.get(`http://localhost:5000/api/event/${eventId}`);
       setEvent(response.data);
+      setSelectedCategory(response.data.category); // Set the event's category
     } catch (error) {
       console.error('Lỗi khi lấy chi tiết sự kiện:', error);
       alert('Không thể tải chi tiết sự kiện!');
@@ -34,6 +38,16 @@ const EventDetails = () => {
     } catch (error) {
       console.error('Lỗi khi lấy danh sách dịch vụ:', error);
       alert('Không thể tải danh sách dịch vụ!');
+    }
+  };
+
+  const fetchCategories = async () => {
+    try {
+      const response = await axios.get('http://localhost:5000/api/categories');
+      setCategories(response.data);
+    } catch (error) {
+      console.error('Lỗi khi lấy danh sách danh mục:', error);
+      alert('Không thể tải danh sách danh mục!');
     }
   };
 
@@ -85,6 +99,19 @@ const EventDetails = () => {
     }
   };
 
+  const handleUpdateCategory = async () => {
+    try {
+      await axios.put(`http://localhost:5000/api/event/${eventId}`, {
+        category: selectedCategory,
+      });
+      alert('Danh mục sự kiện đã được cập nhật!');
+      fetchEventDetails();
+    } catch (error) {
+      console.error('Lỗi khi cập nhật danh mục:', error);
+      alert('Không thể cập nhật danh mục! Vui lòng thử lại.');
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-indigo-100 via-purple-50 to-pink-100 py-12">
       <div className="container mx-auto px-4 max-w-4xl">
@@ -108,6 +135,29 @@ const EventDetails = () => {
             <p className="text-gray-600">
               <strong>Địa điểm:</strong> {event.location}
             </p>
+            <div className="flex items-center gap-4 mt-4">
+              <label htmlFor="category" className="font-medium text-gray-700">
+                Danh mục:
+              </label>
+              <select
+                id="category"
+                value={selectedCategory}
+                onChange={(e) => setSelectedCategory(e.target.value)}
+                className="border border-gray-300 p-2 rounded flex-grow"
+              >
+                {categories.map((category) => (
+                  <option key={category._id} value={category.name}>
+                    {category.name}
+                  </option>
+                ))}
+              </select>
+              <button
+                onClick={handleUpdateCategory}
+                className="bg-green-500 text-white px-4 py-2 rounded-full shadow-md hover:bg-green-600 transition-all"
+              >
+                Cập nhật danh mục
+              </button>
+            </div>
           </div>
         )}
 
@@ -204,3 +254,4 @@ const EventDetails = () => {
 };
 
 export default EventDetails;
+

@@ -3,24 +3,39 @@ import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 
 const CreateEvent = () => {
+  const [categories, setCategories] = useState([]); // Danh sách Category
   const [eventData, setEventData] = useState({
     name: '',
     date: '',
-    category: '',
+    category: '', // ID của Category
     location: '',
   });
   const [error, setError] = useState('');
   const navigate = useNavigate();
+
+  // Lấy danh sách category khi component được mount
+  useEffect(() => {
+    const fetchCategories = async () => {
+      try {
+        const response = await axios.get('http://localhost:5000/api/categories');
+        setCategories(response.data);
+      } catch (error) {
+        console.error('Lỗi khi lấy danh sách category:', error);
+        setError('Không thể tải danh sách category!');
+      }
+    };
+    fetchCategories();
+  }, []);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
 
     try {
-        await axios.post('http://localhost:5000/api/event/create', {
-          ...eventData,
-          services: [], // Gửi mảng rỗng nếu không có dịch vụ
-        });
+      await axios.post('http://localhost:5000/api/event/create', {
+        ...eventData,
+        services: [], // Gửi mảng rỗng nếu không có dịch vụ
+      });
       alert('Tạo sự kiện thành công!');
       navigate('/eventlist');
     } catch (error) {
@@ -66,16 +81,26 @@ const CreateEvent = () => {
               required
               className="border border-gray-300 rounded-lg p-3 w-full focus:outline-none focus:ring-2 focus:ring-purple-600"
             />
-            <input
-              type="text"
-              placeholder="Thể loại"
+
+            {/* Dropdown chọn Category */}
+            <select
               value={eventData.category}
               onChange={(e) =>
                 setEventData({ ...eventData, category: e.target.value })
               }
               required
               className="border border-gray-300 rounded-lg p-3 w-full focus:outline-none focus:ring-2 focus:ring-purple-600"
-            />
+            >
+              <option value="" disabled>
+                Chọn danh mục
+              </option>
+              {categories.map((category) => (
+                <option key={category._id} value={category._id}>
+                  {category.name}
+                </option>
+              ))}
+            </select>
+
             <input
               type="text"
               placeholder="Địa điểm"
