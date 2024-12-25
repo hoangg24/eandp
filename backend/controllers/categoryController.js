@@ -53,7 +53,7 @@ const categoryController={
 },
 
 // Xóa danh mục
-deleteCategory: async (req, res) => {
+    deleteCategory: async (req, res) => {
     const { id } = req.params;
   
     // Kiểm tra ID có hợp lệ không

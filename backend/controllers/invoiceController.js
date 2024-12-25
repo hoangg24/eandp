@@ -2,9 +2,9 @@ import Invoice from '../models/invoiceModel.js';
 import Event from '../models/eventModel.js';
 
 const invoiceController = {
-     createInvoice : async (req, res) => {
+    createInvoice: async (req, res) => {
         try {
-            const { eventId } = req.body;
+            const { eventId, status = 'Pending' } = req.body; // Nhận trạng thái nếu có
     
             // Tìm sự kiện và populate danh sách dịch vụ
             const event = await Event.findById(eventId).populate('services.service');
@@ -34,6 +34,7 @@ const invoiceController = {
                 event: event._id,
                 services,
                 totalAmount,
+                status, // Gán trạng thái
             });
     
             await newInvoice.save();
@@ -94,11 +95,15 @@ const invoiceController = {
     updateInvoiceById: async (req, res) => {
         try {
             const { invoiceId } = req.params;
-            const { services } = req.body; // Danh sách dịch vụ được cập nhật
+            const { status } = req.body; // Nhận trạng thái từ client
+    
+            if (!['Pending', 'Paid', 'Canceled'].includes(status)) {
+                return res.status(400).json({ message: 'Trạng thái không hợp lệ!' });
+            }
     
             const updatedInvoice = await Invoice.findByIdAndUpdate(
                 invoiceId,
-                { services },
+                { status }, // Cập nhật trạng thái
                 { new: true }
             )
                 .populate('event', 'name date location')
@@ -108,7 +113,7 @@ const invoiceController = {
                 return res.status(404).json({ message: 'Không tìm thấy hóa đơn để cập nhật!' });
             }
     
-            res.status(200).json({ message: 'Cập nhật hóa đơn thành công!', invoice: updatedInvoice });
+            res.status(200).json({ message: 'Cập nhật trạng thái hóa đơn thành công!', invoice: updatedInvoice });
         } catch (error) {
             console.error('Lỗi khi cập nhật hóa đơn:', error);
             res.status(500).json({ message: 'Lỗi khi cập nhật hóa đơn!' });

@@ -7,6 +7,7 @@ const InvoiceDetails = () => {
     const navigate = useNavigate();
     const [invoice, setInvoice] = useState(null);
     const [loading, setLoading] = useState(true);
+    const [status, setStatus] = useState(''); // Trạng thái mới
 
     useEffect(() => {
         fetchInvoiceDetails();
@@ -16,11 +17,25 @@ const InvoiceDetails = () => {
         try {
             const response = await axios.get(`http://localhost:5000/api/invoices/${id}`);
             setInvoice(response.data);
+            setStatus(response.data.status); // Gán trạng thái hiện tại
             setLoading(false);
         } catch (error) {
             console.error('Lỗi khi lấy chi tiết hóa đơn:', error);
             alert('Không thể tải chi tiết hóa đơn!');
             setLoading(false);
+        }
+    };
+
+    const handleUpdateStatus = async () => {
+        try {
+            await axios.put(`http://localhost:5000/api/invoices/${id}`, {
+                status,
+            });
+            alert('Cập nhật trạng thái hóa đơn thành công!');
+            fetchInvoiceDetails(); // Refresh chi tiết hóa đơn
+        } catch (error) {
+            console.error('Lỗi khi cập nhật trạng thái hóa đơn:', error);
+            alert('Không thể cập nhật trạng thái hóa đơn!');
         }
     };
 
@@ -65,18 +80,36 @@ const InvoiceDetails = () => {
                             ))}
                         </ul>
 
+                        {/* Trạng thái hóa đơn */}
+                        <h4 className="mt-6 text-lg font-bold text-gray-700">Trạng Thái:</h4>
+                        <select
+                            className="mt-2 p-2 border rounded w-full"
+                            value={status}
+                            onChange={(e) => setStatus(e.target.value)}
+                        >
+                            <option value="Pending">Pending</option>
+                            <option value="Paid">Paid</option>
+                            <option value="Canceled">Canceled</option>
+                        </select>
+
                         {/* Tổng tiền */}
                         <h3 className="text-xl font-bold text-purple-600 mt-6">
                             Tổng Tiền: {invoice.totalAmount.toLocaleString()} VND
                         </h3>
 
-                        {/* Nút trở về */}
-                        <div className="flex justify-end mt-8">
+                        {/* Nút hành động */}
+                        <div className="flex justify-between mt-8">
                             <button
                                 onClick={() => navigate('/invoices')}
                                 className="bg-gray-500 text-white px-6 py-2 rounded-full shadow-md hover:bg-gray-600 transition-all"
                             >
                                 Trở Về Danh Sách Hóa Đơn
+                            </button>
+                            <button
+                                onClick={handleUpdateStatus}
+                                className="bg-green-500 text-white px-6 py-2 rounded-full shadow-md hover:bg-green-600 transition-all"
+                            >
+                                Cập Nhật Trạng Thái
                             </button>
                         </div>
                     </div>

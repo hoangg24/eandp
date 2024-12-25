@@ -28,6 +28,11 @@ const AdminLayout = ({ children }) => {
               Quản lý danh mục
             </Link>
           </li>
+          <li>
+            <Link to="/invoices" className="hover:text-indigo-200">
+              Quản lý hóa đơn
+            </Link>
+          </li>
         </ul>
       </aside>
 

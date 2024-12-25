@@ -27,6 +27,11 @@ const InvoiceSchema = new mongoose.Schema({
         type: Number, 
         required: true 
     }, // Tổng tiền hóa đơn
+    status: { 
+        type: String, 
+        enum: ['Pending', 'Paid', 'Canceled'], // Các trạng thái có thể có
+        default: 'Pending' // Giá trị mặc định
+    }, // Trạng thái hóa đơn
     createdAt: { 
         type: Date, 
         default: Date.now 
@@ -34,3 +39,4 @@ const InvoiceSchema = new mongoose.Schema({
 });
 
 export default mongoose.model('Invoice', InvoiceSchema);
+
