@@ -9,6 +9,7 @@ import eventRoutes from './routes/eventRoutes.js';
 import serviceRoutes from './routes/serviceRoutes.js';
 import invoiceRoutes from './routes/invoiceRoutes.js';
 import categoryRoutes from './routes/categoryRoutes.js'; 
+import paymentRoutes from './routes/paymentRoutes.js';
 // Khởi động server
 const PORT = process.env.PORT || 5000;
 app.use(express.json());
@@ -19,6 +20,7 @@ app.use('/api/event', eventRoutes);
 app.use("/api/services", serviceRoutes);
 app.use('/api/invoices', invoiceRoutes);
 app.use('/api/categories', categoryRoutes);
+app.use('/api/payments', paymentRoutes);
 app.listen(PORT, async () => {
     await connectDB(); // Kết nối với MongoDB
     console.log(`Server is running on http://localhost:${PORT}`);

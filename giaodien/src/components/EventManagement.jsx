@@ -96,7 +96,7 @@ const EventManagement = () => {
   };
 
   return (
-    <AdminLayout>
+   
       <div className="container mx-auto">
         <h2 className="text-3xl font-bold text-center mb-10 text-purple-600">
           {editingEventId ? 'Cập nhật Sự Kiện' : 'Thêm Sự Kiện'}
@@ -212,7 +212,7 @@ const EventManagement = () => {
           )}
         </div>
       </div>
-    </AdminLayout>
+  
   );
 };
 

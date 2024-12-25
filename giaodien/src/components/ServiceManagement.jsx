@@ -78,7 +78,7 @@ const ServiceManagement = () => {
   };
 
   return (
-    <AdminLayout>
+
       <div className="container mx-auto">
         <h2 className="text-4xl font-bold text-center text-transparent bg-clip-text bg-gradient-to-r from-purple-600 to-pink-600 mb-8">
           Quản Lý Dịch Vụ
@@ -200,7 +200,7 @@ const ServiceManagement = () => {
           </ul>
         </div>
       </div>
-    </AdminLayout>
+
   );
 };
 

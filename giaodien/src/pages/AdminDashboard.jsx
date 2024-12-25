@@ -2,7 +2,7 @@ import { Link, Outlet } from "react-router-dom";
 
 const AdminDashboard = () => {
   const menuItems = [
-    { name: "Quản lý người dùng", route: "users" },
+    { name: "Quản lý người dùng", route: "/users" },
     { name: "Quản lý sự kiện", route: "/events" },
     { name: "Quản lý dịch vụ", route: "/services" },
   ];

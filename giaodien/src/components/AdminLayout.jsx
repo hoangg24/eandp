@@ -1,7 +1,7 @@
 import React from 'react';
-import { Link } from 'react-router-dom';
+import { Link, Outlet } from 'react-router-dom';
 
-const AdminLayout = ({ children }) => {
+const AdminLayout = () => {
   return (
     <div className="min-h-screen grid grid-cols-5">
       {/* Sidebar */}
@@ -14,22 +14,22 @@ const AdminLayout = ({ children }) => {
             </Link>
           </li>
           <li>
-            <Link to="/events" className="hover:text-indigo-200">
+            <Link to="/admin/events" className="hover:text-indigo-200">
               Quản lý sự kiện
             </Link>
           </li>
           <li>
-            <Link to="/services" className="hover:text-indigo-200">
+            <Link to="/admin/services" className="hover:text-indigo-200">
               Quản lý dịch vụ
             </Link>
           </li>
           <li>
-            <Link to="/categories" className="hover:text-indigo-200">
+            <Link to="/admin/categories" className="hover:text-indigo-200">
               Quản lý danh mục
             </Link>
           </li>
           <li>
-            <Link to="/invoices" className="hover:text-indigo-200">
+            <Link to="/admin/invoices" className="hover:text-indigo-200">
               Quản lý hóa đơn
             </Link>
           </li>
@@ -37,9 +37,12 @@ const AdminLayout = ({ children }) => {
       </aside>
 
       {/* Main Content */}
-      <main className="col-span-4 bg-gray-100 p-8">{children}</main>
+      <main className="col-span-4 bg-gray-100 p-8">
+        <Outlet />
+      </main>
     </div>
   );
 };
 
 export default AdminLayout;
+
