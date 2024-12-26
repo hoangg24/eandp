@@ -3,10 +3,10 @@ import paymentController from '../controllers/paymentController.js';
 
 const router = express.Router();
 
-// Route khởi tạo thanh toán
-router.post('/create', paymentController.createPayment);
+// Route tạo giao dịch MoMo
+router.post('/momo/create', paymentController.createMoMoPayment);
 
-// Route xử lý callback từ ZaloPay
-router.post('/callback', paymentController.vnpayReturn);
+// Route xử lý thông báo từ MoMo
+router.post('/momo/notify', paymentController.handleMoMoNotification);
 
 export default router;
