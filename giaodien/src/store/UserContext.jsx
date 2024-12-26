@@ -7,7 +7,7 @@ export const UserContext = createContext();
 // Provider để quản lý trạng thái người dùng
 const UserProvider = ({ children }) => {
   const [user, setUser] = useState(null);
-  const [loading, setLoading] = useState(true); // Trạng thái loading để kiểm tra việc load user
+  const [loading, setLoading] = useState(true); // Trạng thái loading
 
   useEffect(() => {
     // Kiểm tra và load user từ localStorage (nếu có token)
@@ -15,22 +15,37 @@ const UserProvider = ({ children }) => {
     if (token) {
       try {
         const decoded = jwtDecode(token);
-        setUser(decoded); // Cập nhật user từ token đã giải mã
+        const currentTime = Date.now() / 1000; // Thời gian hiện tại tính bằng giây
+        if (decoded.exp < currentTime) {
+          console.warn('Token đã hết hạn');
+          localStorage.removeItem('token'); // Xóa token hết hạn
+          setUser(null);
+        } else {
+          setUser(decoded);
+        }
       } catch (error) {
         console.error('Error decoding token:', error);
+        localStorage.removeItem('token'); // Xóa token lỗi
         setUser(null);
       }
     } else {
-      setUser(null); // Nếu không có token, set user thành null
+      setUser(null);
     }
-    setLoading(false); // Hoàn tất việc kiểm tra token
+    setLoading(false);
   }, []);
 
   const login = (token) => {
     try {
-      const decoded = jwtDecode(token); // Decode token để lấy thông tin người dùng
+      const decoded = jwtDecode(token);
+      const currentTime = Date.now() / 1000;
+      if (decoded.exp < currentTime) {
+        console.error('Token đã hết hạn');
+        return;
+      }
       setUser(decoded); // Lưu thông tin user vào state
+      localStorage.setItem('role', decoded.role); // Lưu vai trò
       localStorage.setItem('token', token); // Lưu token vào localStorage
+      localStorage.setItem('userId', decoded.id); // Lưu userId
     } catch (error) {
       console.error('Error decoding token on login:', error);
     }
@@ -43,7 +58,7 @@ const UserProvider = ({ children }) => {
 
   return (
     <UserContext.Provider value={{ user, login, logout, loading }}>
-      {children}
+      {!loading && children}
     </UserContext.Provider>
   );
 };

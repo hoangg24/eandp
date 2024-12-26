@@ -10,18 +10,28 @@ const CreateEvent = () => {
     category: '', // ID của Category
     location: '',
   });
-  const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false); // Trạng thái loading
+  const [error, setError] = useState(''); // Trạng thái lỗi
+  const [successMessage, setSuccessMessage] = useState(''); // Thông báo thành công
   const navigate = useNavigate();
 
   // Lấy danh sách category khi component được mount
   useEffect(() => {
     const fetchCategories = async () => {
+      setLoading(true);
       try {
-        const response = await axios.get('http://localhost:5000/api/categories');
+        const token = localStorage.getItem('token'); // Lấy token từ localStorage
+        const response = await axios.get('http://localhost:5000/api/categories', {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
         setCategories(response.data);
       } catch (error) {
         console.error('Lỗi khi lấy danh sách category:', error);
         setError('Không thể tải danh sách category!');
+      } finally {
+        setLoading(false);
       }
     };
     fetchCategories();
@@ -30,17 +40,34 @@ const CreateEvent = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
+    setSuccessMessage('');
+    setLoading(true);
 
     try {
-      await axios.post('http://localhost:5000/api/event/create', {
-        ...eventData,
-        services: [], // Gửi mảng rỗng nếu không có dịch vụ
-      });
-      alert('Tạo sự kiện thành công!');
-      navigate('/eventlist');
+      const token = localStorage.getItem('token'); // Lấy token từ localStorage
+      await axios.post(
+        'http://localhost:5000/api/event/create',
+        {
+          ...eventData,
+          services: [], // Gửi mảng rỗng nếu không có dịch vụ
+        },
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+      setSuccessMessage('Tạo sự kiện thành công!');
+      setTimeout(() => {
+        navigate('/eventlist');
+      }, 1500); // Chuyển hướng sau 1.5 giây
     } catch (error) {
       console.error('Lỗi khi tạo sự kiện:', error);
-      setError('Không thể tạo sự kiện. Vui lòng thử lại!');
+      setError(
+        error.response?.data?.message || 'Không thể tạo sự kiện. Vui lòng thử lại!'
+      );
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -51,9 +78,22 @@ const CreateEvent = () => {
           Tạo Sự Kiện
         </h2>
 
+        {/* Hiển thị trạng thái lỗi hoặc thành công */}
         {error && (
           <p className="text-red-500 bg-red-100 p-2 rounded-lg mb-4">
             {error}
+          </p>
+        )}
+        {successMessage && (
+          <p className="text-green-500 bg-green-100 p-2 rounded-lg mb-4">
+            {successMessage}
+          </p>
+        )}
+
+        {/* Hiển thị thông báo đang tải */}
+        {loading && (
+          <p className="text-blue-500 bg-blue-100 p-2 rounded-lg mb-4">
+            Đang xử lý, vui lòng chờ...
           </p>
         )}
 
@@ -115,9 +155,14 @@ const CreateEvent = () => {
           <div className="flex justify-center mt-8">
             <button
               type="submit"
-              className="bg-purple-600 text-white px-6 py-3 rounded-full shadow-md hover:bg-purple-700 transition-all"
+              disabled={loading} // Vô hiệu hóa khi đang tải
+              className={`px-6 py-3 rounded-full shadow-md transition-all ${
+                loading
+                  ? 'bg-gray-400 cursor-not-allowed'
+                  : 'bg-purple-600 text-white hover:bg-purple-700'
+              }`}
             >
-              Tạo Sự Kiện
+              {loading ? 'Đang xử lý...' : 'Tạo Sự Kiện'}
             </button>
           </div>
         </form>

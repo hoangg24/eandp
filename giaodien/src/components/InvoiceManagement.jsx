@@ -47,11 +47,17 @@ const InvoiceManagement = () => {
     };
 
     // Thanh toán MoMo
-    const handlePayment = async (invoiceId) => {
+    const handlePayment = async (invoice) => {
+        if (invoice.status === 'Paid') {
+            // Nếu hóa đơn đã thanh toán, hiển thị thông báo
+            alert('Hóa đơn đã được thanh toán!');
+            return;
+        }
+
         try {
             const response = await axios.post(
                 'http://localhost:5000/api/payments/momo/create',
-                { invoiceId }
+                { invoiceId: invoice._id }
             );
 
             if (response.data.payUrl) {
@@ -117,14 +123,12 @@ const InvoiceManagement = () => {
                                             >
                                                 Xóa
                                             </button>
-                                            {invoice.status === 'Pending' && (
-                                                <button
-                                                    onClick={() => handlePayment(invoice._id)} // Nút thanh toán
-                                                    className="bg-yellow-500 text-white px-4 py-2 rounded shadow hover:bg-yellow-600"
-                                                >
-                                                    Thanh toán
-                                                </button>
-                                            )}
+                                            <button
+                                                onClick={() => handlePayment(invoice)} // Nút thanh toán
+                                                className="bg-yellow-500 text-white px-4 py-2 rounded shadow hover:bg-yellow-600"
+                                            >
+                                                Thanh toán
+                                            </button>
                                         </td>
                                     </tr>
                                 ))}
@@ -142,4 +146,5 @@ const InvoiceManagement = () => {
 };
 
 export default InvoiceManagement;
+
 
