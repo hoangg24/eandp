@@ -70,7 +70,7 @@ const Invoice = () => {
         }
       );
       alert('Hóa đơn đã được tạo thành công!');
-      navigate('/eventlist'); // Chuyển hướng tới danh sách sự kiện
+      navigate('/invoices'); // Chuyển hướng tới danh sách sự kiện
     } catch (error) {
       console.error('Lỗi khi tạo hóa đơn:', error);
       alert('Không thể tạo hóa đơn!');

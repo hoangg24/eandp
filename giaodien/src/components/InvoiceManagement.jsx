@@ -9,19 +9,23 @@ const InvoiceManagement = () => {
     const navigate = useNavigate();
 
     useEffect(() => {
-        fetchInvoices();
+        fetchInvoices(); // Lấy danh sách hóa đơn khi component mount
     }, []);
 
-    // Lấy danh sách hóa đơn
+    // Lấy danh sách hóa đơn từ API
     const fetchInvoices = async () => {
-        setLoading(true);
-        setError(null);
         try {
-            const response = await axios.get('http://localhost:5000/api/invoices');
-            setInvoices(response.data);
+            setLoading(true);
+            const response = await axios.get('http://localhost:5000/api/invoices', {
+                headers: {
+                    Authorization: `Bearer ${localStorage.getItem('token')}`, // Gửi token từ localStorage
+                },
+            });
+            setInvoices(response.data); // Gán danh sách hóa đơn từ backend
         } catch (error) {
-            console.error('Lỗi khi lấy danh sách hóa đơn:', error);
-            setError('Không thể tải danh sách hóa đơn!');
+            setError(
+                error.response?.data?.message || 'Không thể tải danh sách hóa đơn! Vui lòng thử lại.'
+            );
         } finally {
             setLoading(false);
         }
@@ -34,22 +38,24 @@ const InvoiceManagement = () => {
 
     // Xóa hóa đơn
     const handleDeleteInvoice = async (invoiceId) => {
-        if (window.confirm('Bạn có chắc chắn muốn xóa hóa đơn này?')) {
-            try {
-                await axios.delete(`http://localhost:5000/api/invoices/${invoiceId}`);
-                alert('Xóa hóa đơn thành công!');
-                fetchInvoices(); // Cập nhật danh sách sau khi xóa
-            } catch (error) {
-                console.error('Lỗi khi xóa hóa đơn:', error);
-                alert('Không thể xóa hóa đơn! Vui lòng thử lại.');
-            }
+        if (!window.confirm('Bạn có chắc chắn muốn xóa hóa đơn này?')) return;
+
+        try {
+            await axios.delete(`http://localhost:5000/api/invoices/${invoiceId}`, {
+                headers: {
+                    Authorization: `Bearer ${localStorage.getItem('token')}`,
+                },
+            });
+            alert('Xóa hóa đơn thành công!');
+            setInvoices((prevInvoices) => prevInvoices.filter((invoice) => invoice._id !== invoiceId));
+        } catch (error) {
+            alert('Không thể xóa hóa đơn! Vui lòng thử lại.');
         }
     };
 
     // Thanh toán MoMo
     const handlePayment = async (invoice) => {
         if (invoice.status === 'Paid') {
-            // Nếu hóa đơn đã thanh toán, hiển thị thông báo
             alert('Hóa đơn đã được thanh toán!');
             return;
         }
@@ -57,21 +63,25 @@ const InvoiceManagement = () => {
         try {
             const response = await axios.post(
                 'http://localhost:5000/api/payments/momo/create',
-                { invoiceId: invoice._id }
+                { invoiceId: invoice._id },
+                {
+                    headers: {
+                        Authorization: `Bearer ${localStorage.getItem('token')}`,
+                    },
+                }
             );
 
             if (response.data.payUrl) {
-                // Chuyển hướng người dùng đến URL thanh toán của MoMo
-                window.location.href = response.data.payUrl;
+                window.location.href = response.data.payUrl; // Redirect đến URL thanh toán
             } else {
                 alert('Không thể tạo giao dịch. Vui lòng thử lại sau.');
             }
         } catch (error) {
-            console.error('Lỗi khi tạo giao dịch MoMo:', error);
             alert('Đã xảy ra lỗi khi thanh toán!');
         }
     };
 
+    // Hiển thị giao diện quản lý hóa đơn
     return (
         <div className="bg-gradient-to-br from-indigo-100 via-purple-50 to-pink-100 py-12">
             <div className="container mx-auto px-4">
@@ -124,7 +134,7 @@ const InvoiceManagement = () => {
                                                 Xóa
                                             </button>
                                             <button
-                                                onClick={() => handlePayment(invoice)} // Nút thanh toán
+                                                onClick={() => handlePayment(invoice)}
                                                 className="bg-yellow-500 text-white px-4 py-2 rounded shadow hover:bg-yellow-600"
                                             >
                                                 Thanh toán
@@ -146,5 +156,4 @@ const InvoiceManagement = () => {
 };
 
 export default InvoiceManagement;
-
 

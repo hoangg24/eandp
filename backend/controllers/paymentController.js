@@ -178,6 +178,21 @@ const paymentController = {
             error: error.message,
         });
     }
+},
+  getPaymentStatus: async (req, res) => {
+  try {
+      const { orderId } = req.params;
+      const payment = await Payment.findOne({ transactionId: orderId });
+
+      if (!payment) {
+          return res.status(404).json({ message: 'Không tìm thấy thông tin thanh toán' });
+      }
+
+      return res.status(200).json(payment);
+  } catch (error) {
+      console.error('Lỗi khi lấy trạng thái thanh toán:', error.message);
+      res.status(500).json({ message: 'Có lỗi xảy ra khi lấy trạng thái thanh toán' });
+  }
 }
 };
 

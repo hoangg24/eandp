@@ -35,7 +35,8 @@ const InvoiceSchema = new mongoose.Schema({
     createdAt: { 
         type: Date, 
         default: Date.now 
-    } // Ngày tạo hóa đơn
+    },// Ngày tạo hóa đơn
+    createdBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true }, // Người tạo
 });
 
 export default mongoose.model('Invoice', InvoiceSchema);

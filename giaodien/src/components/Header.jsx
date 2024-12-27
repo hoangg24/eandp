@@ -44,6 +44,12 @@ const Header = () => {
                 >
                   Danh Sách Sự Kiện
                 </Link>
+                <Link
+                  to="/invoices"
+                  className="text-indigo-100 hover:text-white transition-colors duration-150 ease-in-out text-sm font-medium"
+                >
+                  Danh Sách hóa đơn
+                </Link>
               </>
             )}
           </div>

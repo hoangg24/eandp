@@ -1,11 +1,12 @@
 import Invoice from '../models/invoiceModel.js';
 import Event from '../models/eventModel.js';
+import mongoose from 'mongoose';
 
 const invoiceController = {
     createInvoice: async (req, res) => {
         try {
             const { eventId, status = 'Pending' } = req.body; // Nhận trạng thái nếu có
-    
+            const userId = req.user.id;
             // Tìm sự kiện và populate danh sách dịch vụ
             const event = await Event.findById(eventId).populate('services.service');
             if (!event) {
@@ -23,6 +24,7 @@ const invoiceController = {
                 name: service.service.name,
                 price: service.service.price,
                 quantity: service.quantity,
+
             }));
     
             const totalAmount = services.reduce(
@@ -35,6 +37,7 @@ const invoiceController = {
                 services,
                 totalAmount,
                 status, // Gán trạng thái
+                createdBy: userId,
             });
     
             await newInvoice.save();
@@ -53,9 +56,21 @@ const invoiceController = {
     // Lấy danh sách hóa đơn
     getAllInvoices: async (req, res) => {
         try {
-            const invoices = await Invoice.find()
-                .populate('event', 'name date location') // Populate thông tin sự kiện
-                .populate('services.service', 'name price'); // Populate thông tin dịch vụ
+            const userRole = req.user.role; // Vai trò của người dùng từ middleware xác thực
+            const userId = req.user.id; // ID người dùng từ token xác thực
+    
+            let invoices;
+            if (userRole === 'admin') {
+                // Admin: Trả về tất cả hóa đơn
+                invoices = await Invoice.find()
+                    .populate('event', 'name date location') // Populate thông tin sự kiện
+                    .populate('services.service', 'name price'); // Populate thông tin dịch vụ
+            } else {
+                // Người dùng thường: Chỉ trả về hóa đơn của họ
+                invoices = await Invoice.find({ createdBy: userId })
+                    .populate('event', 'name date location')
+                    .populate('services.service', 'name price');
+            }
     
             res.status(200).json(invoices);
         } catch (error) {
@@ -68,18 +83,38 @@ const invoiceController = {
     getInvoiceById: async (req, res) => {
         try {
             const { id } = req.params;
-            const invoice = await Invoice.findById(id).populate('event').populate('services.service');
+            const userRole = req.user.role; // Vai trò người dùng
+            const userId = req.user.id; // ID người dùng
+    
+            const invoice = await Invoice.findById(id)
+                .populate('event', 'name date location')
+                .populate('services.service', 'name price');
+    
             if (!invoice) {
                 return res.status(404).json({ message: 'Hóa đơn không tồn tại!' });
-            }   
+            }
+    
+            // Kiểm tra quyền truy cập
+            if (userRole !== 'admin' && invoice.createdBy.toString() !== userId) {
+                return res.status(403).json({ message: 'Bạn không có quyền truy cập hóa đơn này!' });
+            }
+    
             res.status(200).json(invoice);
         } catch (error) {
-            res.status(500).json({ message: 'Lỗi khi lấy hóa đơn!', error });
+            console.error('Lỗi khi lấy hóa đơn:', error);
+            res.status(500).json({ message: 'Lỗi khi lấy hóa đơn!' });
         }
     },
     deleteInvoiceById: async (req, res) => {
         try {
             const { invoiceId } = req.params;
+            const userRole = req.user.role;
+    
+            // Kiểm tra quyền truy cập: chỉ admin mới được phép xóa
+            if (userRole !== 'admin') {
+                return res.status(403).json({ message: 'Bạn không có quyền xóa hóa đơn!' });
+            }
+    
             const deletedInvoice = await Invoice.findByIdAndDelete(invoiceId);
     
             if (!deletedInvoice) {
