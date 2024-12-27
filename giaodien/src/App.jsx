@@ -17,7 +17,8 @@ import InvoiceManagement from './components/InvoiceManagement.jsx';
 import InvoiceDetails from './components/InvoiceDetails.jsx';
 import CreateEvent from './components/CreateEvent.jsx';
 import CategoryManagement from './components/CategoryManagement.jsx';
-
+import PaymentStatus from './components/PaymentStatus.jsx';
+import PaymentResult from './components/PaymentResult.jsx';
 const App = () => {
   return (
     <Routes>
@@ -35,6 +36,8 @@ const App = () => {
         <Route path="invoices/:id" element={<InvoiceDetails />} />
         <Route path="events/create" element={<CreateEvent />} />
         <Route path="categories" element={<CategoryManagement />} />
+        <Route path="payment/status/:orderId" element={<PaymentStatus />} />
+        <Route path="/payment-result" element={<PaymentResult />} />
       </Route>
 
       {/* Protected Admin Routes */}

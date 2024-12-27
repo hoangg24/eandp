@@ -13,21 +13,38 @@ const EventDetails = () => {
   const [quantity, setQuantity] = useState(1);
   const [isEditing, setIsEditing] = useState(null);
   const [editingQuantity, setEditingQuantity] = useState(1);
+  const [userRole, setUserRole] = useState('');
+  const [userId, setUserId] = useState('');
 
+  // Fetch data khi component được load
   useEffect(() => {
     fetchEventDetails();
     fetchServices();
     fetchCategories();
+    fetchUserInfo();
   }, [eventId]);
 
+  // Lấy thông tin người dùng từ localStorage
+  const fetchUserInfo = () => {
+    const role = localStorage.getItem('role');
+    const id = localStorage.getItem('userId');
+    setUserRole(role);
+    setUserId(id);
+  };
+
+  // Lấy chi tiết sự kiện
   const fetchEventDetails = async () => {
     try {
       const token = localStorage.getItem('token');
       const response = await axios.get(`http://localhost:5000/api/event/${eventId}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
+  
       setEvent(response.data);
-      setSelectedCategory(response.data.category);
+  
+      // Gán selectedCategory từ event.category, nếu không tồn tại, gán giá trị rỗng
+      const matchedCategory = categories.find((cat) => cat._id === response.data.category);
+      setSelectedCategory(matchedCategory ? matchedCategory._id : '');
     } catch (error) {
       console.error('Lỗi khi lấy chi tiết sự kiện:', error);
       alert('Không thể tải chi tiết sự kiện!');
@@ -35,6 +52,7 @@ const EventDetails = () => {
     }
   };
 
+  // Lấy danh sách dịch vụ
   const fetchServices = async () => {
     try {
       const response = await axios.get('http://localhost:5000/api/services');
@@ -44,17 +62,25 @@ const EventDetails = () => {
     }
   };
 
+  // Lấy danh sách danh mục
   const fetchCategories = async () => {
     try {
       const response = await axios.get('http://localhost:5000/api/categories');
-      setCategories(response.data);
+      if (response.data.length === 0) {
+        setCategories([{ _id: 'default', name: 'Không có danh mục' }]);
+      } else {
+        setCategories(response.data);
+      }
     } catch (error) {
       console.error('Lỗi khi lấy danh sách danh mục:', error);
+      setCategories([{ _id: 'default', name: 'Không có danh mục' }]); // Fallback nếu xảy ra lỗi
     }
   };
 
-  const canEditEvent = event?.createdBy === localStorage.getItem('userId') || localStorage.getItem('role') === 'admin';
+  // Kiểm tra quyền chỉnh sửa
+  const canEditEvent = event?.createdBy === userId || userRole === 'admin';
 
+  // Xử lý thêm dịch vụ
   const handleAddService = async () => {
     if (!selectedService || quantity < 1) {
       alert('Vui lòng chọn dịch vụ và nhập số lượng hợp lệ!');
@@ -62,26 +88,34 @@ const EventDetails = () => {
     }
     try {
       const token = localStorage.getItem('token');
-      await axios.post(`http://localhost:5000/api/event/${eventId}/add-service`, {
-        serviceId: selectedService,
-        quantity,
-      }, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      await axios.post(
+        `http://localhost:5000/api/event/${eventId}/add-service`,
+        {
+          serviceId: selectedService,
+          quantity,
+        },
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
       alert('Dịch vụ đã được thêm vào sự kiện!');
-      fetchEventDetails();
+      await fetchEventDetails();
     } catch (error) {
       console.error('Lỗi khi thêm dịch vụ:', error);
       alert('Không thể thêm dịch vụ!');
     }
   };
 
+  // Xử lý xóa dịch vụ
   const handleDeleteService = async (serviceId) => {
     try {
       const token = localStorage.getItem('token');
-      await axios.delete(`http://localhost:5000/api/event/${eventId}/remove-service/${serviceId}`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      await axios.delete(
+        `http://localhost:5000/api/event/${eventId}/remove-service/${serviceId}`,
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
       alert('Dịch vụ đã được xóa!');
       fetchEventDetails();
     } catch (error) {
@@ -90,14 +124,21 @@ const EventDetails = () => {
     }
   };
 
+  // Xử lý sửa dịch vụ
   const handleEditService = async () => {
+    if (editingQuantity < 1) {
+      alert('Số lượng phải lớn hơn 0!');
+      return;
+    }
     try {
       const token = localStorage.getItem('token');
-      await axios.put(`http://localhost:5000/api/event/${eventId}/update-service/${isEditing}`, {
-        quantity: editingQuantity,
-      }, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      await axios.put(
+        `http://localhost:5000/api/event/${eventId}/update-service/${isEditing}`,
+        { quantity: editingQuantity },
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
       alert('Số lượng dịch vụ đã được cập nhật!');
       setIsEditing(null);
       fetchEventDetails();
@@ -107,16 +148,23 @@ const EventDetails = () => {
     }
   };
 
+  // Xử lý cập nhật danh mục
   const handleUpdateCategory = async () => {
+    if (!selectedCategory || selectedCategory === event.category) {
+      alert('Danh mục không thay đổi hoặc không hợp lệ!');
+      return;
+    }
     try {
       const token = localStorage.getItem('token');
-      await axios.put(`http://localhost:5000/api/event/${eventId}`, {
-        category: selectedCategory,
-      }, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      await axios.put(
+        `http://localhost:5000/api/event/${eventId}`,
+        { category: selectedCategory },
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
       alert('Danh mục đã được cập nhật!');
-      fetchEventDetails();
+      await fetchEventDetails(); // Đồng bộ lại trạng thái sau khi cập nhật
     } catch (error) {
       console.error('Lỗi khi cập nhật danh mục:', error);
       alert('Không thể cập nhật danh mục!');
@@ -147,18 +195,19 @@ const EventDetails = () => {
                 <label htmlFor="category" className="font-medium text-gray-700">
                   Danh mục:
                 </label>
-                <select
-                  id="category"
-                  value={selectedCategory}
-                  onChange={(e) => setSelectedCategory(e.target.value)}
-                  className="border border-gray-300 p-2 rounded flex-grow"
-                >
-                  {categories.map((category) => (
-                    <option key={category._id} value={category._id}>
-                      {category.name}
-                    </option>
-                  ))}
-                </select>
+                  <select
+                    id="category"
+                    value={selectedCategory || ''} // Đảm bảo giá trị không null
+                    onChange={(e) => setSelectedCategory(e.target.value)}
+                    className="border border-gray-300 p-2 rounded flex-grow"
+                    >
+                    <option value="" disabled>-- Chọn danh mục --</option>
+                    {categories.map((category) => (
+                      <option key={category._id} value={category._id}>
+                        {category.name}
+                      </option>
+                    ))}
+                  </select>
                 {canEditEvent && (
                   <button
                     onClick={handleUpdateCategory}
@@ -216,21 +265,46 @@ const EventDetails = () => {
                       </div>
                       {canEditEvent && (
                         <div className="flex gap-4">
-                          <button
-                            onClick={() => {
-                              setIsEditing(s.service._id);
-                              setEditingQuantity(s.quantity);
-                            }}
-                            className="bg-yellow-500 text-white px-4 py-2 rounded shadow-md hover:bg-yellow-600 transition-all"
-                          >
-                            Sửa
-                          </button>
-                          <button
-                            onClick={() => handleDeleteService(s.service._id)}
-                            className="bg-red-500 text-white px-4 py-2 rounded shadow-md hover:bg-red-600 transition-all"
-                          >
-                            Xóa
-                          </button>
+                          {isEditing === s.service._id ? (
+                            <>
+                              <input
+                                type="number"
+                                value={editingQuantity}
+                                onChange={(e) => setEditingQuantity(parseInt(e.target.value, 10))}
+                                className="border border-gray-300 p-2 w-20 rounded"
+                              />
+                              <button
+                                onClick={handleEditService}
+                                className="bg-green-500 text-white px-4 py-2 rounded shadow-md hover:bg-green-600 transition-all"
+                              >
+                                Lưu
+                              </button>
+                              <button
+                                onClick={() => setIsEditing(null)}
+                                className="bg-gray-500 text-white px-4 py-2 rounded shadow-md hover:bg-gray-600 transition-all"
+                              >
+                                Hủy
+                              </button>
+                            </>
+                          ) : (
+                            <>
+                              <button
+                                onClick={() => {
+                                  setIsEditing(s.service._id);
+                                  setEditingQuantity(s.quantity);
+                                }}
+                                className="bg-yellow-500 text-white px-4 py-2 rounded shadow-md hover:bg-yellow-600 transition-all"
+                              >
+                                Sửa
+                              </button>
+                              <button
+                                onClick={() => handleDeleteService(s.service._id)}
+                                className="bg-red-500 text-white px-4 py-2 rounded shadow-md hover:bg-red-600 transition-all"
+                              >
+                                Xóa
+                              </button>
+                            </>
+                          )}
                         </div>
                       )}
                     </li>

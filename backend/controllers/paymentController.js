@@ -8,8 +8,8 @@ var accessKey = 'F8BBA842ECF85';
 var secretKey = 'K951B6PE1waDMi640xX08PD3vg6EkVlz';
 var orderInfo = 'pay with MoMo';
 var partnerCode = 'MOMO';
-var redirectUrl = 'https://webhook.site/b3088a6a-2d17-4f8d-a383-71389a6c600b';
-var ipnUrl = 'https://webhook.site/b3088a6a-2d17-4f8d-a383-71389a6c600b';
+var redirectUrl = 'http://localhost:5173/payment-result'; // Giao diện hiển thị kết quả thanh toán
+var ipnUrl = 'http://localhost:5000/api/momo/notify';
 var requestType = 'payWithMethod';
 var extraData = '';
 var orderGroupId = '';
@@ -26,6 +26,10 @@ const paymentController = {
       const invoice = await Invoice.findById(invoiceId);
       if (!invoice) {
         return res.status(404).json({ message: 'Hóa đơn không tồn tại!' });
+      }
+        // Kiểm tra trạng thái hóa đơn, không cho phép tạo giao dịch nếu đã thanh toán
+        if (invoice.status === 'Paid') {
+          return res.status(400).json({ message: 'Hóa đơn đã được thanh toán!' });
       }
 
       const totalAmount = Math.round(invoice.totalAmount); // Lấy amount từ hóa đơn
@@ -133,37 +137,51 @@ const paymentController = {
     try {
         const { orderId, resultCode, amount, message } = req.body;
 
-        // Kiểm tra dữ liệu thông báo
+        // Log thông báo từ MoMo
         console.log('Thông báo từ MoMo:', req.body);
 
         // Tìm thông tin thanh toán dựa trên transactionId (orderId từ MoMo)
         const payment = await Payment.findOne({ transactionId: orderId });
         if (!payment) {
-            return res.status(404).json({ message: 'Không tìm thấy thông tin thanh toán' });
+            return res.status(404).json({ message: 'Không tìm thấy thông tin thanh toán.' });
         }
 
         // Kiểm tra số tiền thanh toán có khớp không
         if (payment.amount !== amount) {
-            return res.status(400).json({ 
-                message: 'Số tiền thanh toán không khớp',
+            console.warn('Số tiền thanh toán không khớp:', {
+                expected: payment.amount,
+                received: amount,
+            });
+            return res.status(400).json({
+                message: 'Số tiền thanh toán không khớp.',
                 expectedAmount: payment.amount,
                 receivedAmount: amount,
             });
         }
 
-        // Cập nhật trạng thái thanh toán dựa trên resultCode từ MoMo
-        payment.status = resultCode === 0 ? 'Completed' : 'Failed';
+        // Xác định trạng thái thanh toán dựa trên resultCode từ MoMo
+        let paymentStatus;
+        let invoiceStatus;
+
+        if (resultCode === 0) {
+            paymentStatus = 'Completed'; // Thanh toán thành công
+            invoiceStatus = 'Paid'; // Hóa đơn được thanh toán
+        } else {
+            paymentStatus = 'Failed'; // Thanh toán thất bại
+            invoiceStatus = 'Unpaid'; // Hóa đơn vẫn chưa được thanh toán
+        }
+
+        // Cập nhật trạng thái thanh toán
+        payment.status = paymentStatus;
         await payment.save();
 
-        // Nếu thanh toán thành công, cập nhật trạng thái hóa đơn
-        if (resultCode === 0) {
-            await Invoice.findByIdAndUpdate(payment.invoice, { status: 'Paid' });
-        }
+        // Cập nhật trạng thái hóa đơn liên quan
+        await Invoice.findByIdAndUpdate(payment.invoice, { status: invoiceStatus });
 
         // Gửi phản hồi tới MoMo
         return res.status(200).json({
             success: true,
-            message: 'Xử lý thông báo từ MoMo thành công',
+            message: `Xử lý thông báo từ MoMo thành công. Trạng thái: ${paymentStatus}`,
         });
     } catch (error) {
         console.error('Callback Error:', {
@@ -174,11 +192,11 @@ const paymentController = {
         // Gửi lỗi phản hồi tới MoMo
         return res.status(500).json({
             success: false,
-            message: 'Có lỗi xảy ra khi xử lý thông báo từ MoMo',
+            message: 'Có lỗi xảy ra khi xử lý thông báo từ MoMo.',
             error: error.message,
         });
     }
-},
+  },
   getPaymentStatus: async (req, res) => {
   try {
       const { orderId } = req.params;
