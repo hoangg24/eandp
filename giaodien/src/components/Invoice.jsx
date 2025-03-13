@@ -3,12 +3,12 @@ import axios from 'axios';
 import { useParams, useNavigate } from 'react-router-dom';
 
 const Invoice = () => {
-  const { eventId } = useParams(); // ID sự kiện
+  const { eventId } = useParams();
   const navigate = useNavigate();
-  const [event, setEvent] = useState(null); // Lưu thông tin sự kiện
-  const [invoice, setInvoice] = useState(null); // Lưu thông tin hóa đơn tạm thời
-  const [loading, setLoading] = useState(true); // Trạng thái tải dữ liệu
-  const [canCreateInvoice, setCanCreateInvoice] = useState(false); // Quyền tạo hóa đơn
+  const [event, setEvent] = useState(null);
+  const [invoice, setInvoice] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [canCreateInvoice, setCanCreateInvoice] = useState(false);
 
   useEffect(() => {
     fetchEventDetails();
@@ -24,7 +24,6 @@ const Invoice = () => {
       const eventData = response.data;
       setEvent(eventData);
 
-      // Tạm tính hóa đơn (chưa lưu vào DB)
       const tempInvoice = {
         event: {
           name: eventData.name,
@@ -44,7 +43,6 @@ const Invoice = () => {
 
       setInvoice(tempInvoice);
 
-      // Kiểm tra quyền tạo hóa đơn
       const userId = localStorage.getItem('userId');
       const userRole = localStorage.getItem('role');
       const hasPermission =
@@ -53,8 +51,8 @@ const Invoice = () => {
       setCanCreateInvoice(hasPermission);
       setLoading(false);
     } catch (error) {
-      console.error('Lỗi khi tải chi tiết sự kiện:', error);
-      alert('Không thể tải chi tiết sự kiện!');
+      console.error('Error fetching event details:', error);
+      alert('Failed to load event details!');
       setLoading(false);
     }
   };
@@ -64,84 +62,98 @@ const Invoice = () => {
       const token = localStorage.getItem('token');
       await axios.post(
         'http://localhost:5000/api/invoices/create',
-        { eventId }, // Gửi ID sự kiện
+        { eventId },
         {
           headers: { Authorization: `Bearer ${token}` },
         }
       );
-      alert('Hóa đơn đã được tạo thành công!');
-      navigate('/invoices'); // Chuyển hướng tới danh sách sự kiện
+      alert('Invoice created successfully!');
+      navigate('/invoices');
     } catch (error) {
-      console.error('Lỗi khi tạo hóa đơn:', error);
-      alert('Không thể tạo hóa đơn!');
+      console.error('Error creating invoice:', error);
+      alert('Failed to create invoice!');
     }
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-indigo-100 via-purple-50 to-pink-100 py-12">
-      <div className="container mx-auto px-4 max-w-4xl">
-        <h2 className="text-4xl font-bold text-center mb-10 text-purple-600">
-          Chi Tiết Hóa Đơn Tạm Thời
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 py-12 px-4 sm:px-6 lg:px-8">
+      <div className="max-w-3xl mx-auto">
+        <h2 className="text-3xl font-extrabold text-center text-indigo-700 mb-8">
+          Temporary Invoice Preview
         </h2>
 
         {loading ? (
-          <p className="text-center text-gray-600">Đang tải...</p>
+          <div className="flex justify-center items-center h-64">
+            <div className="animate-spin rounded-full h-12 w-12 border-t-4 border-indigo-500"></div>
+          </div>
         ) : event && invoice ? (
-          <div className="bg-white shadow-md rounded-lg p-6">
-            {/* Thông tin sự kiện */}
-            <div className="mb-6">
-              <h3 className="font-bold text-xl text-gray-800">{invoice.event.name}</h3>
-              <p className="text-gray-600">
-                Ngày: {new Date(invoice.event.date).toLocaleDateString()}
+          <div className="bg-white shadow-xl rounded-xl p-6 md:p-8 transform transition-all hover:shadow-2xl">
+            {/* Event Info */}
+            <div className="border-b border-gray-200 pb-6 mb-6">
+              <h3 className="text-2xl font-semibold text-gray-800">{invoice.event.name}</h3>
+              <p className="text-gray-600 mt-1">
+                Date: {new Date(invoice.event.date).toLocaleDateString('en-US', {
+                  weekday: 'long',
+                  year: 'numeric',
+                  month: 'long',
+                  day: 'numeric',
+                })}
               </p>
-              <p className="text-gray-600">Địa điểm: {invoice.event.location}</p>
+              <p className="text-gray-600">Location: {invoice.event.location}</p>
             </div>
 
-            {/* Chi tiết dịch vụ */}
-            <h4 className="font-bold text-lg text-gray-700">Dịch Vụ:</h4>
-            <ul className="divide-y divide-gray-200 mt-4">
-              {invoice.services.map((service, index) => (
-                <li
-                  key={index}
-                  className="flex justify-between py-4 hover:bg-gray-50 transition-all duration-200 rounded-lg px-4"
-                >
-                  <span>{service.name}</span>
-                  <span>
-                    {service.quantity} x {service.price.toLocaleString()} VND
-                  </span>
-                </li>
-              ))}
-            </ul>
+            {/* Services List */}
+            <div className="mb-6">
+              <h4 className="text-lg font-semibold text-gray-700 mb-4">Services</h4>
+              <div className="space-y-4">
+                {invoice.services.map((service, index) => (
+                  <div
+                    key={index}
+                    className="flex justify-between items-center p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-all duration-200"
+                  >
+                    <span className="text-gray-700 font-medium">{service.name}</span>
+                    <span className="text-gray-600">
+                      {service.quantity} × {service.price.toLocaleString()} VND
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
 
-            {/* Tổng tiền */}
-            <h4 className="font-bold text-xl text-purple-600 mt-6">
-              Tổng Tiền: {invoice.totalAmount.toLocaleString()} VND
-            </h4>
+            {/* Total Amount */}
+            <div className="flex justify-between items-center border-t border-gray-200 pt-6">
+              <span className="text-lg font-semibold text-gray-700">Total Amount:</span>
+              <span className="text-2xl font-bold text-indigo-600">
+                {invoice.totalAmount.toLocaleString()} VND
+              </span>
+            </div>
 
-            {/* Nút hành động */}
-            <div className="flex justify-end gap-4 mt-8">
+            {/* Action Buttons */}
+            <div className="mt-8 flex justify-end gap-4">
               <button
                 onClick={() => navigate('/eventlist')}
-                className="bg-gray-500 text-white px-6 py-2 rounded-full shadow-md hover:bg-gray-600 transition-all"
+                className="px-6 py-2 bg-gray-200 text-gray-700 rounded-full font-semibold shadow-md hover:bg-gray-300 transition-all duration-200"
               >
-                Trở về
+                Back to Events
               </button>
               {canCreateInvoice ? (
                 <button
                   onClick={handleCreateInvoice}
-                  className="bg-green-500 text-white px-6 py-2 rounded-full shadow-md hover:bg-green-600 transition-all"
+                  className="px-6 py-2 bg-indigo-600 text-white rounded-full font-semibold shadow-md hover:bg-indigo-700 transition-all duration-200"
                 >
-                  Tạo Hóa Đơn Chính Thức
+                  Create Official Invoice
                 </button>
               ) : (
-                <p className="text-gray-600 italic">
-                  Bạn không có quyền tạo hóa đơn cho sự kiện này.
+                <p className="text-sm text-gray-500 italic">
+                  You don’t have permission to create an invoice for this event.
                 </p>
               )}
             </div>
           </div>
         ) : (
-          <p className="text-center text-red-500">Không tìm thấy thông tin hóa đơn.</p>
+          <div className="text-center bg-red-50 text-red-600 p-6 rounded-lg shadow-md">
+            <p>No invoice information found.</p>
+          </div>
         )}
       </div>
     </div>

@@ -3,11 +3,11 @@ import { useParams, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 
 const InvoiceDetails = () => {
-  const { id } = useParams(); // ID của hóa đơn
+  const { id } = useParams();
   const navigate = useNavigate();
-  const [invoice, setInvoice] = useState(null); // Chi tiết hóa đơn
-  const [loading, setLoading] = useState(true); // Trạng thái tải dữ liệu
-  const [status, setStatus] = useState(''); // Trạng thái mới của hóa đơn
+  const [invoice, setInvoice] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [status, setStatus] = useState('');
 
   useEffect(() => {
     fetchInvoiceDetails();
@@ -20,11 +20,11 @@ const InvoiceDetails = () => {
         headers: { Authorization: `Bearer ${token}` },
       });
       setInvoice(response.data);
-      setStatus(response.data.status); // Gán trạng thái hiện tại của hóa đơn
+      setStatus(response.data.status);
       setLoading(false);
     } catch (error) {
-      console.error('Lỗi khi lấy chi tiết hóa đơn:', error);
-      alert('Không thể tải chi tiết hóa đơn!');
+      console.error('Error fetching invoice details:', error);
+      alert('Failed to load invoice details!');
       setLoading(false);
     }
   };
@@ -39,93 +39,113 @@ const InvoiceDetails = () => {
           headers: { Authorization: `Bearer ${token}` },
         }
       );
-      alert('Cập nhật trạng thái hóa đơn thành công!');
-      fetchInvoiceDetails(); // Làm mới dữ liệu sau khi cập nhật
+      alert('Invoice status updated successfully!');
+      fetchInvoiceDetails();
     } catch (error) {
-      console.error('Lỗi khi cập nhật trạng thái hóa đơn:', error);
-      alert('Không thể cập nhật trạng thái hóa đơn!');
+      console.error('Error updating invoice status:', error);
+      alert('Failed to update invoice status!');
     }
   };
 
   const canEditInvoice = localStorage.getItem('role') === 'admin';
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-indigo-100 via-purple-50 to-pink-100 py-12">
-      <div className="container mx-auto px-4 max-w-3xl">
-        <h2 className="text-4xl font-bold text-center mb-10 text-purple-600">Chi Tiết Hóa Đơn</h2>
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 py-12 px-4 sm:px-6 lg:px-8">
+      <div className="max-w-3xl mx-auto">
+        <h2 className="text-3xl font-extrabold text-center text-indigo-700 mb-8">
+          Invoice Details
+        </h2>
 
         {loading ? (
-          <p className="text-center text-gray-600">Đang tải chi tiết hóa đơn...</p>
+          <div className="flex justify-center items-center h-64">
+            <div className="animate-spin rounded-full h-12 w-12 border-t-4 border-indigo-500"></div>
+          </div>
         ) : invoice ? (
-          <div className="bg-white shadow-md rounded-lg p-6">
-            {/* Thông tin sự kiện */}
-            <div className="mb-6">
-              <h3 className="font-bold text-2xl text-gray-800">Sự Kiện: {invoice.event.name}</h3>
-              <p className="text-gray-600">
-                Ngày: {new Date(invoice.event.date).toLocaleDateString()}
+          <div className="bg-white shadow-xl rounded-xl p-6 md:p-8 transform transition-all hover:shadow-2xl">
+            {/* Event Information */}
+            <div className="border-b border-gray-200 pb-6 mb-6">
+              <h3 className="text-2xl font-semibold text-gray-800">
+                Event: {invoice.event.name}
+              </h3>
+              <p className="text-gray-600 mt-1">
+                Date: {new Date(invoice.event.date).toLocaleDateString('en-US', {
+                  weekday: 'long',
+                  year: 'numeric',
+                  month: 'long',
+                  day: 'numeric',
+                })}
               </p>
-              <p className="text-gray-600">Địa Điểm: {invoice.event.location}</p>
+              <p className="text-gray-600">Location: {invoice.event.location}</p>
             </div>
 
-            {/* Chi tiết dịch vụ */}
-            <h4 className="text-xl font-bold text-gray-700 mb-4">Chi Tiết Dịch Vụ:</h4>
-            <ul className="divide-y divide-gray-200">
-              {invoice.services.map((service) => (
-                <li
-                  key={service.service._id}
-                  className="flex justify-between items-center py-4 px-2 hover:bg-gray-50 rounded-lg"
-                >
-                  <span>{service.service.name}</span>
-                  <span>
-                    {service.quantity} x {service.price.toLocaleString()} VND
-                  </span>
-                </li>
-              ))}
-            </ul>
+            {/* Service Details */}
+            <div className="mb-6">
+              <h4 className="text-lg font-semibold text-gray-700 mb-4">Service Details</h4>
+              <div className="space-y-4">
+                {invoice.services.map((service) => (
+                  <div
+                    key={service.service._id}
+                    className="flex justify-between items-center p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-all duration-200"
+                  >
+                    <span className="text-gray-700 font-medium">{service.service.name}</span>
+                    <span className="text-gray-600">
+                      {service.quantity} × {service.price.toLocaleString()} VND
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
 
-            {/* Trạng thái hóa đơn */}
-            <h4 className="mt-6 text-lg font-bold text-gray-700">Trạng Thái:</h4>
-            {canEditInvoice ? (
-              <>
-                <select
-                  className="mt-2 p-2 border rounded w-full"
-                  value={status}
-                  onChange={(e) => setStatus(e.target.value)}
-                >
-                  <option value="Pending">Pending</option>
-                  <option value="Paid">Paid</option>
-                  <option value="Canceled">Canceled</option>
-                </select>
-                <button
-                  onClick={handleUpdateStatus}
-                  className="bg-green-500 text-white px-6 py-2 mt-4 rounded-full shadow-md hover:bg-green-600 transition-all"
-                >
-                  Cập Nhật Trạng Thái
-                </button>
-              </>
-            ) : (
-              <p className="mt-2 text-gray-600 italic">
-                Bạn không có quyền chỉnh sửa trạng thái hóa đơn này.
-              </p>
-            )}
+            {/* Invoice Status */}
+            <div className="mb-6">
+              <h4 className="text-lg font-semibold text-gray-700 mb-4">Invoice Status</h4>
+              {canEditInvoice ? (
+                <div className="space-y-4">
+                  <select
+                    className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all"
+                    value={status}
+                    onChange={(e) => setStatus(e.target.value)}
+                  >
+                    <option value="Pending">Pending</option>
+                    <option value="Paid">Paid</option>
+                    <option value="Canceled">Canceled</option>
+                  </select>
+                  <button
+                    onClick={handleUpdateStatus}
+                    className="w-full px-6 py-2 bg-indigo-600 text-white rounded-full font-semibold shadow-md hover:bg-indigo-700 transition-all duration-200"
+                  >
+                    Update Status
+                  </button>
+                </div>
+              ) : (
+                <p className="text-sm text-gray-500 italic">
+                  You don’t have permission to edit the status of this invoice.
+                </p>
+              )}
+            </div>
 
-            {/* Tổng tiền */}
-            <h3 className="text-xl font-bold text-purple-600 mt-6">
-              Tổng Tiền: {invoice.totalAmount.toLocaleString()} VND
-            </h3>
+            {/* Total Amount */}
+            <div className="flex justify-between items-center border-t border-gray-200 pt-6">
+              <span className="text-lg font-semibold text-gray-700">Total Amount:</span>
+              <span className="text-2xl font-bold text-indigo-600">
+                {invoice.totalAmount.toLocaleString()} VND
+              </span>
+            </div>
 
-            {/* Nút hành động */}
-            <div className="flex justify-between mt-8">
+            {/* Action Button */}
+            <div className="mt-8 flex justify-end">
               <button
                 onClick={() => navigate('/eventlist')}
-                className="bg-gray-500 text-white px-6 py-2 rounded-full shadow-md hover:bg-gray-600 transition-all"
+                className="px-6 py-2 bg-gray-200 text-gray-700 rounded-full font-semibold shadow-md hover:bg-gray-300 transition-all duration-200"
               >
-                Trở Về Danh Sách Sự Kiện
+                Back to Event List
               </button>
             </div>
           </div>
         ) : (
-          <p className="text-center text-red-500">Không tìm thấy hóa đơn!</p>
+          <div className="text-center bg-red-50 text-red-600 p-6 rounded-lg shadow-md">
+            <p>No invoice found!</p>
+          </div>
         )}
       </div>
     </div>

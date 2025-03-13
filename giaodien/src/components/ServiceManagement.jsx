@@ -1,63 +1,101 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from "react";
 import {
   getAllServices,
   createService,
   updateService,
   deleteService,
-} from '../services/serviceService';
-import AdminLayout from '../components/AdminLayout'; // Import AdminLayout
+} from "../services/serviceService";
+import { getServiceUsage } from "../services/eventService";
+import {
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  Legend,
+  ResponsiveContainer,
+} from "recharts";
 
 const ServiceManagement = () => {
   const [services, setServices] = useState([]);
+  const [serviceUsage, setServiceUsage] = useState([]); // New state for service usage data
   const [serviceForm, setServiceForm] = useState({
-    name: '',
-    description: '',
+    name: "",
+    description: "",
     quantity: 0,
     price: 0,
   });
   const [editingServiceId, setEditingServiceId] = useState(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
 
   useEffect(() => {
     fetchServices();
+    fetchServiceUsage();
   }, []);
 
+  const fetchServiceUsage = async () => {
+    try {
+      const data = await getServiceUsage();
+      const formattedData = Object.keys(data).map(key => ({
+        name: key,
+        quantity: data[key],
+      }));
+      setServiceUsage(formattedData);
+    } catch (error) {
+      console.error("Error fetching service usage:", error);
+    }
+  };
+
   const fetchServices = async () => {
+    setLoading(true);
+    setError(null);
     try {
       const data = await getAllServices();
       setServices(data);
     } catch (error) {
-      console.error('Lỗi khi tải danh sách dịch vụ:', error);
-      alert('Không thể tải danh sách dịch vụ!');
+      console.error("Error fetching services:", error);
+      setError("Unable to load service list!");
+    } finally {
+      setLoading(false);
     }
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    setLoading(true);
+    setError(null);
     try {
       if (editingServiceId) {
         await updateService(editingServiceId, serviceForm);
-        alert('Cập nhật dịch vụ thành công!');
+        alert("Service updated successfully!");
       } else {
         await createService(serviceForm);
-        alert('Thêm dịch vụ thành công!');
+        alert("Service added successfully!");
       }
       resetForm();
       fetchServices();
     } catch (error) {
-      console.error('Lỗi khi thêm/cập nhật dịch vụ:', error);
-      alert('Không thể thêm/cập nhật dịch vụ!');
+      console.error("Error adding/updating service:", error);
+      alert("Unable to add/update service!");
+    } finally {
+      setLoading(false);
     }
   };
 
   const handleDelete = async (id) => {
-    if (window.confirm('Bạn có chắc chắn muốn xóa dịch vụ này không?')) {
+    if (window.confirm("Are you sure you want to delete this service?")) {
+      setLoading(true);
       try {
         await deleteService(id);
-        alert('Xóa dịch vụ thành công!');
+        alert("Service deleted successfully!");
         fetchServices();
       } catch (error) {
-        console.error('Lỗi khi xóa dịch vụ:', error);
-        alert('Không thể xóa dịch vụ!');
+        console.error("Error deleting service:", error);
+        alert("Unable to delete service!");
+      } finally {
+        setLoading(false);
       }
     }
   };
@@ -73,47 +111,47 @@ const ServiceManagement = () => {
   };
 
   const resetForm = () => {
-    setServiceForm({ name: '', description: '', quantity: 0, price: 0 });
+    setServiceForm({ name: "", description: "", quantity: 0, price: 0 });
     setEditingServiceId(null);
   };
 
   return (
+    <div className="container mx-auto px-4 py-8">
+      <h2 className="text-3xl font-semibold text-gray-800 mb-8 text-center">
+        Service Management
+      </h2>
 
-      <div className="container mx-auto">
-        <h2 className="text-4xl font-bold text-center text-transparent bg-clip-text bg-gradient-to-r from-purple-600 to-pink-600 mb-8">
-          Quản Lý Dịch Vụ
-        </h2>
-
-        {/* Form thêm/cập nhật dịch vụ */}
-        <form
-          onSubmit={handleSubmit}
-          className="bg-white p-6 rounded-xl shadow-lg mb-10"
-        >
-          <h3 className="text-2xl font-semibold text-gray-700 mb-6">
-            {editingServiceId ? 'Cập nhật dịch vụ' : 'Thêm dịch vụ mới'}
-          </h3>
-          <div className="space-y-4">
+      {/* Form */}
+      <form
+        onSubmit={handleSubmit}
+        className="bg-white shadow-lg rounded-xl p-6 mb-10 transition-all duration-300 hover:shadow-xl"
+      >
+        <h3 className="text-xl font-semibold text-gray-700 mb-6">
+          {editingServiceId ? "Update Service" : "Add New Service"}
+        </h3>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Service Name
+            </label>
             <input
               type="text"
-              placeholder="Tên dịch vụ"
+              placeholder="Enter service name"
               value={serviceForm.name}
               onChange={(e) =>
                 setServiceForm({ ...serviceForm, name: e.target.value })
               }
               required
-              className="w-full p-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-600"
+              className="w-full p-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none transition-all"
             />
-            <textarea
-              placeholder="Mô tả dịch vụ"
-              value={serviceForm.description}
-              onChange={(e) =>
-                setServiceForm({ ...serviceForm, description: e.target.value })
-              }
-              className="w-full p-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-600"
-            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Quantity
+            </label>
             <input
               type="number"
-              placeholder="Số lượng"
+              placeholder="Enter quantity"
               value={serviceForm.quantity}
               onChange={(e) =>
                 setServiceForm({
@@ -123,84 +161,168 @@ const ServiceManagement = () => {
               }
               required
               min="0"
-              className="w-full p-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-600"
+              className="w-full p-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none transition-all"
             />
-            <div className="flex items-center">
-              <input
-                type="text"
-                placeholder="Giá dịch vụ"
-                value={serviceForm.price}
-                onChange={(e) => {
-                  const value = e.target.value.replace(/[^0-9]/g, '');
-                  setServiceForm({
-                    ...serviceForm,
-                    price: parseFloat(value) || 0,
-                  });
-                }}
-                required
-                className="w-full p-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-600"
-              />
-              <span className="ml-2">VNĐ</span>
-            </div>
           </div>
-          <div className="flex gap-4 mt-6">
+          <div className="md:col-span-2">
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Description
+            </label>
+            <textarea
+              placeholder="Enter service description"
+              value={serviceForm.description}
+              onChange={(e) =>
+                setServiceForm({ ...serviceForm, description: e.target.value })
+              }
+              className="w-full p-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none transition-all"
+              rows="3"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Price (VNĐ)
+            </label>
+            <input
+              type="text"
+              placeholder="Enter price"
+              value={serviceForm.price}
+              onChange={(e) => {
+                const value = e.target.value.replace(/[^0-9]/g, "");
+                setServiceForm({
+                  ...serviceForm,
+                  price: parseFloat(value) || 0,
+                });
+              }}
+              required
+              className="w-full p-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none transition-all"
+            />
+          </div>
+        </div>
+        <div className="flex gap-4 mt-6">
+          <button
+            type="submit"
+            disabled={loading}
+            className="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition-all disabled:bg-blue-400 flex items-center"
+          >
+            {loading ? (
+              <svg className="animate-spin h-5 w-5 mr-2" viewBox="0 0 24 24">
+                <circle
+                  className="opacity-25"
+                  cx="12"
+                  cy="12"
+                  r="10"
+                  stroke="currentColor"
+                  strokeWidth="4"
+                />
+                <path
+                  className="opacity-75"
+                  fill="currentColor"
+                  d="M4 12a8 8 0 018-8v8h8a8 8 0 01-16 0z"
+                />
+              </svg>
+            ) : null}
+            {editingServiceId ? "Update" : "Add"}
+          </button>
+          {editingServiceId && (
             <button
-              type="submit"
-              className="bg-purple-600 text-white px-6 py-3 rounded-lg hover:bg-purple-700 transition-all"
+              type="button"
+              onClick={resetForm}
+              className="bg-gray-500 text-white px-6 py-2 rounded-lg hover:bg-gray-600 transition-all"
             >
-              {editingServiceId ? 'Cập nhật' : 'Thêm'}
+              Cancel
             </button>
-            {editingServiceId && (
-              <button
-                type="button"
-                onClick={resetForm}
-                className="bg-gray-500 text-white px-6 py-3 rounded-lg hover:bg-gray-600 transition-all"
-              >
-                Hủy
-              </button>
-            )}
-          </div>
-        </form>
+          )}
+        </div>
+      </form>
 
-        {/* Danh sách dịch vụ */}
-        <div className="bg-white p-6 rounded-xl shadow-lg">
-          <h3 className="text-2xl font-semibold text-gray-700 mb-6">
-            Danh sách dịch vụ
-          </h3>
+      {/* Service List */}
+      <div className="bg-white shadow-lg rounded-xl p-6 mb-10">
+        <h3 className="text-2xl font-semibold text-gray-700 mb-6">
+          Service List
+        </h3>
+        {loading ? (
+          <div className="flex justify-center py-8">
+            <svg
+              className="animate-spin h-8 w-8 text-blue-600"
+              viewBox="0 0 24 24"
+            >
+              <circle
+                className="opacity-25"
+                cx="12"
+                cy="12"
+                r="10"
+                stroke="currentColor"
+                strokeWidth="4"
+              />
+              <path
+                className="opacity-75"
+                fill="currentColor"
+                d="M4 12a8 8 0 018-8v8h8a8 8 0 01-16 0z"
+              />
+            </svg>
+          </div>
+        ) : error ? (
+          <p className="text-center py-8 text-red-600 font-medium">{error}</p>
+        ) : services.length > 0 ? (
           <ul className="space-y-4">
             {services.map((service) => (
               <li
                 key={service._id}
-                className="bg-white p-4 rounded-lg shadow flex justify-between items-center"
+                className="bg-white p-4 rounded-lg shadow flex flex-col md:flex-row justify-between items-start md:items-center hover:bg-gray-50 transition-all duration-200"
               >
-                <div>
-                  <h4 className="text-lg font-bold">{service.name}</h4>
+                <div className="mb-4 md:mb-0">
+                  <h4 className="text-lg font-semibold text-gray-800">
+                    {service.name}
+                  </h4>
                   <p className="text-gray-600">{service.description}</p>
                   <p className="text-gray-700">
-                    Số lượng: {service.quantity} - Giá:{' '}
-                    {service.price.toLocaleString()} VND
+                    Quantity: {service.quantity} - Price:{" "}
+                    {service.price.toLocaleString()} VNĐ
                   </p>
                 </div>
-                <div className="flex gap-4">
+                <div className="flex gap-3">
                   <button
                     onClick={() => handleEdit(service)}
-                    className="bg-yellow-500 text-white px-4 py-2 rounded-lg hover:bg-yellow-600"
+                    className="bg-yellow-500 text-white px-4 py-2 rounded-lg hover:bg-yellow-600 transition-all"
+                    aria-label="Edit service"
                   >
-                    Sửa
+                    Edit
                   </button>
                   <button
                     onClick={() => handleDelete(service._id)}
-                    className="bg-red-500 text-white px-4 py-2 rounded-lg hover:bg-red-600"
+                    className="bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition-all"
+                    aria-label="Delete service"
                   >
-                    Xóa
+                    Delete
                   </button>
                 </div>
               </li>
             ))}
           </ul>
-        </div>
+        ) : (
+          <p className="text-center py-8 text-gray-500 italic">
+            No services found.
+          </p>
+        )}
       </div>
 
+      {/* Bar Chart */}
+      <div className="bg-white shadow-lg rounded-xl p-6 mb-10">
+        <h3 className="text-2xl font-semibold text-gray-700 mb-6">
+          Service Usage Chart
+        </h3>
+        <ResponsiveContainer width="100%" height={400}>
+          <BarChart data={serviceUsage}>
+            <CartesianGrid strokeDasharray="3 3" />
+            <XAxis dataKey="name" />
+            <YAxis />
+            <Tooltip />
+            <Legend />
+            <Bar dataKey="quantity" fill="#8884d8" />
+          </BarChart>
+        </ResponsiveContainer>
+      </div>
+    </div>
   );
 };
 

@@ -30,7 +30,8 @@ const userSchema = new mongoose.Schema({
         type: Boolean,
         default: false
     },
-    
+    resetPasswordToken: String,
+    resetPasswordExpires: Date,
 });
 
 // Hàm mã hóa mật khẩu trước khi lưu user
@@ -48,6 +49,16 @@ userSchema.pre('save', async function (next) {
 userSchema.methods.comparePassword = async function (enteredPassword) {
     return await bcrypt.compare(enteredPassword, this.password);
 };
+
+userSchema.pre('save', async function (next) {
+    const user = this;
+    if (!user.isModified('password')) {
+        return next(); // If password hasn't changed, skip
+    }
+    const salt = await bcrypt.genSalt(10); // Generate salt with length 10
+    user.password = await bcrypt.hash(user.password, salt); // Hash the password
+    next();
+});
 
 export default mongoose.model('User', userSchema);
 

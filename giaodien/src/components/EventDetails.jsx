@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from 'react';
-import axios from 'axios';
-import { useParams, useNavigate } from 'react-router-dom';
+import React, { useState, useEffect } from "react";
+import axios from "axios";
+import { useParams, useNavigate } from "react-router-dom";
 
 const EventDetails = () => {
   const { eventId } = useParams();
@@ -8,15 +8,14 @@ const EventDetails = () => {
   const [event, setEvent] = useState(null);
   const [services, setServices] = useState([]);
   const [categories, setCategories] = useState([]);
-  const [selectedService, setSelectedService] = useState(null);
-  const [selectedCategory, setSelectedCategory] = useState('');
+  const [selectedService, setSelectedService] = useState("");
+  const [selectedCategory, setSelectedCategory] = useState("");
   const [quantity, setQuantity] = useState(1);
   const [isEditing, setIsEditing] = useState(null);
   const [editingQuantity, setEditingQuantity] = useState(1);
-  const [userRole, setUserRole] = useState('');
-  const [userId, setUserId] = useState('');
+  const [userRole, setUserRole] = useState("");
+  const [userId, setUserId] = useState("");
 
-  // Fetch data khi component được load
   useEffect(() => {
     fetchEventDetails();
     fetchServices();
@@ -24,266 +23,339 @@ const EventDetails = () => {
     fetchUserInfo();
   }, [eventId]);
 
-  // Lấy thông tin người dùng từ localStorage
   const fetchUserInfo = () => {
-    const role = localStorage.getItem('role');
-    const id = localStorage.getItem('userId');
+    const role = localStorage.getItem("role");
+    const id = localStorage.getItem("userId");
     setUserRole(role);
     setUserId(id);
   };
 
-  // Lấy chi tiết sự kiện
   const fetchEventDetails = async () => {
     try {
-      const token = localStorage.getItem('token');
-      const response = await axios.get(`http://localhost:5000/api/event/${eventId}`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-  
+      const token = localStorage.getItem("token");
+      const response = await axios.get(
+        `http://localhost:5000/api/event/${eventId}`,
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
       setEvent(response.data);
-  
-      // Gán selectedCategory từ event.category, nếu không tồn tại, gán giá trị rỗng
-      const matchedCategory = categories.find((cat) => cat._id === response.data.category);
-      setSelectedCategory(matchedCategory ? matchedCategory._id : '');
+      setSelectedCategory(response.data.category); // Set the selected category to the event's category
     } catch (error) {
-      console.error('Lỗi khi lấy chi tiết sự kiện:', error);
-      alert('Không thể tải chi tiết sự kiện!');
-      navigate('/eventlist');
+      console.error("Error fetching event details:", error);
+      alert("Unable to load event details!");
+      navigate("/eventlist");
     }
   };
 
-  // Lấy danh sách dịch vụ
   const fetchServices = async () => {
     try {
-      const response = await axios.get('http://localhost:5000/api/services');
+      const response = await axios.get("http://localhost:5000/api/services");
       setServices(response.data);
     } catch (error) {
-      console.error('Lỗi khi lấy danh sách dịch vụ:', error);
+      console.error("Error fetching services:", error);
     }
   };
 
-  // Lấy danh sách danh mục
   const fetchCategories = async () => {
     try {
-      const response = await axios.get('http://localhost:5000/api/categories');
-      if (response.data.length === 0) {
-        setCategories([{ _id: 'default', name: 'Không có danh mục' }]);
-      } else {
-        setCategories(response.data);
-      }
+      const response = await axios.get("http://localhost:5000/api/categories");
+      setCategories(
+        response.data.length > 0
+          ? response.data
+          : [{ _id: "default", name: "No Category" }]
+      );
     } catch (error) {
-      console.error('Lỗi khi lấy danh sách danh mục:', error);
-      setCategories([{ _id: 'default', name: 'Không có danh mục' }]); // Fallback nếu xảy ra lỗi
+      console.error("Error fetching categories:", error);
+      setCategories([{ _id: "default", name: "No Category" }]);
     }
   };
 
-  // Kiểm tra quyền chỉnh sửa
-  const canEditEvent = event?.createdBy === userId || userRole === 'admin';
+  const canEditEvent = event?.createdBy === userId || userRole === "admin";
 
-  // Xử lý thêm dịch vụ
   const handleAddService = async () => {
     if (!selectedService || quantity < 1) {
-      alert('Vui lòng chọn dịch vụ và nhập số lượng hợp lệ!');
+      alert("Please select a service and enter a valid quantity!");
       return;
     }
     try {
-      const token = localStorage.getItem('token');
+      const token = localStorage.getItem("token");
       await axios.post(
         `http://localhost:5000/api/event/${eventId}/add-service`,
-        {
-          serviceId: selectedService,
-          quantity,
-        },
-        {
-          headers: { Authorization: `Bearer ${token}` },
-        }
+        { serviceId: selectedService, quantity },
+        { headers: { Authorization: `Bearer ${token}` } }
       );
-      alert('Dịch vụ đã được thêm vào sự kiện!');
-      await fetchEventDetails();
+      alert("Service added successfully!");
+      fetchEventDetails();
+      setSelectedService("");
+      setQuantity(1);
     } catch (error) {
-      console.error('Lỗi khi thêm dịch vụ:', error);
-      alert('Không thể thêm dịch vụ!');
+      console.error("Error adding service:", error);
+      alert("Failed to add service!");
     }
   };
 
-  // Xử lý xóa dịch vụ
   const handleDeleteService = async (serviceId) => {
+    if (!window.confirm("Are you sure you want to delete this service?"))
+      return;
     try {
-      const token = localStorage.getItem('token');
+      const token = localStorage.getItem("token");
       await axios.delete(
         `http://localhost:5000/api/event/${eventId}/remove-service/${serviceId}`,
-        {
-          headers: { Authorization: `Bearer ${token}` },
-        }
+        { headers: { Authorization: `Bearer ${token}` } }
       );
-      alert('Dịch vụ đã được xóa!');
+      alert("Service removed successfully!");
       fetchEventDetails();
     } catch (error) {
-      console.error('Lỗi khi xóa dịch vụ:', error);
-      alert('Không thể xóa dịch vụ!');
+      console.error("Error deleting service:", error);
+      alert("Failed to remove service!");
     }
   };
 
-  // Xử lý sửa dịch vụ
   const handleEditService = async () => {
     if (editingQuantity < 1) {
-      alert('Số lượng phải lớn hơn 0!');
+      alert("Quantity must be greater than 0!");
       return;
     }
     try {
-      const token = localStorage.getItem('token');
+      const token = localStorage.getItem("token");
       await axios.put(
         `http://localhost:5000/api/event/${eventId}/update-service/${isEditing}`,
         { quantity: editingQuantity },
-        {
-          headers: { Authorization: `Bearer ${token}` },
-        }
+        { headers: { Authorization: `Bearer ${token}` } }
       );
-      alert('Số lượng dịch vụ đã được cập nhật!');
+      alert("Service updated successfully!");
       setIsEditing(null);
       fetchEventDetails();
     } catch (error) {
-      console.error('Lỗi khi sửa dịch vụ:', error);
-      alert('Không thể sửa dịch vụ!');
+      console.error("Error editing service:", error);
+      alert("Failed to update service!");
     }
   };
 
-  // Xử lý cập nhật danh mục
   const handleUpdateCategory = async () => {
     if (!selectedCategory || selectedCategory === event.category) {
-      alert('Danh mục không thay đổi hoặc không hợp lệ!');
+      alert("Category unchanged or invalid!");
       return;
     }
     try {
-      const token = localStorage.getItem('token');
+      const token = localStorage.getItem("token");
       await axios.put(
         `http://localhost:5000/api/event/${eventId}`,
         { category: selectedCategory },
-        {
-          headers: { Authorization: `Bearer ${token}` },
-        }
+        { headers: { Authorization: `Bearer ${token}` } }
       );
-      alert('Danh mục đã được cập nhật!');
-      await fetchEventDetails(); // Đồng bộ lại trạng thái sau khi cập nhật
+      alert("Category updated successfully!");
+      fetchEventDetails();
     } catch (error) {
-      console.error('Lỗi khi cập nhật danh mục:', error);
-      alert('Không thể cập nhật danh mục!');
+      console.error("Error updating category:", error);
+      alert("Failed to update category!");
     }
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-indigo-100 via-purple-50 to-pink-100 py-12">
-      <div className="container mx-auto px-4 max-w-4xl">
+    <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-purple-50 to-pink-50 py-12 px-4 sm:px-6 lg:px-8">
+      <div className="max-w-4xl mx-auto">
+        {/* Back Button */}
         <button
-          onClick={() => navigate('/eventlist')}
-          className="bg-blue-500 text-white px-6 py-2 mb-6 rounded-full shadow-md hover:bg-blue-600 transition-all"
+          onClick={() => navigate("/eventlist")}
+          className="mb-8 flex items-center text-indigo-600 hover:text-indigo-800 transition-all duration-300 group"
         >
-          Trở về danh sách sự kiện
+          <svg
+            className="w-6 h-6 mr-2 transform group-hover:-translate-x-1 transition-transform duration-300"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth="2"
+              d="M15 19l-7-7 7-7"
+            />
+          </svg>
+          <span className="text-lg font-medium">Back to Event List</span>
         </button>
 
         {event ? (
           <>
-            <div className="bg-white shadow-md rounded-lg p-6 mb-8">
-              <h2 className="text-3xl font-bold text-purple-600 mb-4">{event.name}</h2>
-              <p className="text-gray-600">
-                <strong>Ngày:</strong> {new Date(event.date).toLocaleDateString()}
-              </p>
-              <p className="text-gray-600">
-                <strong>Địa điểm:</strong> {event.location}
-              </p>
-              <div className="flex items-center gap-4 mt-4">
-                <label htmlFor="category" className="font-medium text-gray-700">
-                  Danh mục:
-                </label>
-                  <select
-                    id="category"
-                    value={selectedCategory || ''} // Đảm bảo giá trị không null
-                    onChange={(e) => setSelectedCategory(e.target.value)}
-                    className="border border-gray-300 p-2 rounded flex-grow"
-                    >
-                    <option value="" disabled>-- Chọn danh mục --</option>
-                    {categories.map((category) => (
-                      <option key={category._id} value={category._id}>
-                        {category.name}
-                      </option>
-                    ))}
-                  </select>
-                {canEditEvent && (
-                  <button
-                    onClick={handleUpdateCategory}
-                    className="bg-green-500 text-white px-4 py-2 rounded-full shadow-md hover:bg-green-600 transition-all"
+            {/* Event Details Card */}
+            <div className="bg-white rounded-2xl shadow-xl p-8 mb-8 transform hover:scale-105 transition-all duration-300">
+              <h2 className="text-4xl font-extrabold text-indigo-700 mb-6 animate-fade-in">
+                {event.name}
+              </h2>
+              <div className="space-y-4 text-gray-700">
+                <p className="flex items-center">
+                  <svg
+                    className="w-5 h-5 mr-2 text-indigo-500"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
                   >
-                    Cập nhật
-                  </button>
-                )}
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth="2"
+                      d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
+                    />
+                  </svg>
+                  <strong>Date:</strong>{" "}
+                  <span className="ml-2">
+                    {new Date(event.date).toLocaleDateString()}
+                  </span>
+                </p>
+                <p className="flex items-center">
+                  <svg
+                    className="w-5 h-5 mr-2 text-indigo-500"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth="2"
+                      d="M17.657 16.657L13.414 12.414a2 2 0 10-2.828-2.828L6.343 13.657a6 6 0 108.314 8.314z"
+                    />
+                  </svg>
+                  <strong>Location:</strong>{" "}
+                  <span className="ml-2">{event.location}</span>
+                </p>
               </div>
-            </div>
-
-            <div className="bg-white shadow-md rounded-lg p-6 mb-8">
-              <h3 className="text-2xl font-semibold text-gray-700 mb-4">Thêm Dịch Vụ</h3>
-              <div className="flex gap-4 items-center">
-                <select
-                  value={selectedService}
-                  onChange={(e) => setSelectedService(e.target.value)}
-                  className="border border-gray-300 p-2 rounded flex-grow"
+              <div className="mt-6 flex flex-col sm:flex-row items-start sm:items-center gap-4">
+                <label
+                  htmlFor="category"
+                  className="text-sm font-medium text-gray-700"
                 >
-                  <option value="">-- Chọn Dịch Vụ --</option>
-                  {services.map((service) => (
-                    <option key={service._id} value={service._id}>
-                      {service.name} - {service.price.toLocaleString()} VND
+                  Category:
+                </label>
+                <select
+                  id="category"
+                  value={selectedCategory || ""}
+                  onChange={(e) => setSelectedCategory(e.target.value)}
+                  className="w-full sm:w-64 p-3 border border-gray-200 rounded-lg bg-gray-50 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all duration-200"
+                >
+                  <option value="" disabled>
+                    Select Category
+                  </option>
+                  {categories.map((category) => (
+                    <option key={category._id} value={category._id}>
+                      {category.name}
                     </option>
                   ))}
                 </select>
-                <input
-                  type="number"
-                  value={quantity}
-                  onChange={(e) => setQuantity(Math.max(1, parseInt(e.target.value)))}
-                  min="1"
-                  className="border border-gray-300 p-2 w-20 rounded"
-                  placeholder="Số lượng"
-                />
                 {canEditEvent && (
                   <button
-                    onClick={handleAddService}
-                    className="bg-green-500 text-white px-6 py-2 rounded-full shadow-md hover:bg-green-600 transition-all"
+                    onClick={handleUpdateCategory}
+                    className="bg-indigo-600 text-white px-5 py-2 rounded-lg hover:bg-indigo-700 transform hover:scale-105 transition-all duration-200"
                   >
-                    Thêm
+                    Update
                   </button>
                 )}
               </div>
             </div>
 
-            <div className="bg-white shadow-md rounded-lg p-6">
-              <h3 className="text-2xl font-semibold text-gray-700 mb-4">Danh Sách Dịch Vụ</h3>
+            {/* Add Service Section */}
+            {canEditEvent && (
+              <div className="bg-white rounded-2xl shadow-xl p-8 mb-8 transform hover:scale-105 transition-all duration-300">
+                <h3 className="text-2xl font-semibold text-gray-800 mb-6">
+                  Add a Service
+                </h3>
+                <div className="flex flex-col sm:flex-row gap-4">
+                  <select
+                    value={selectedService}
+                    onChange={(e) => setSelectedService(e.target.value)}
+                    className="w-full sm:flex-1 p-3 border border-gray-200 rounded-lg bg-gray-50 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all duration-200"
+                  >
+                    <option value="">Select a Service</option>
+                    {services.map((service) => (
+                      <option key={service._id} value={service._id}>
+                        {service.name} - {service.price.toLocaleString()} VND
+                      </option>
+                    ))}
+                  </select>
+                  <input
+                    type="number"
+                    value={quantity}
+                    onChange={(e) =>
+                      setQuantity(Math.max(1, parseInt(e.target.value)))
+                    }
+                    min="1"
+                    className="w-24 p-3 border border-gray-200 rounded-lg bg-gray-50 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all duration-200"
+                    placeholder="Qty"
+                  />
+                  <button
+                    onClick={handleAddService}
+                    className="bg-green-600 text-white px-6 py-3 rounded-lg hover:bg-green-700 transform hover:scale-105 transition-all duration-200"
+                  >
+                    Add Service
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* Service List Section */}
+            <div className="bg-white rounded-2xl shadow-xl p-8">
+              <h3 className="text-2xl font-semibold text-gray-800 mb-6">
+                Service List
+              </h3>
               {event.services.length > 0 ? (
-                <ul className="divide-y divide-gray-200">
+                <ul className="space-y-6">
                   {event.services.map((s) => (
-                    <li key={s._id} className="flex justify-between items-center py-4">
-                      <div>
-                        <p className="text-gray-800 font-semibold">{s.service.name}</p>
-                        <p className="text-gray-600">Số lượng: {s.quantity}</p>
+                    <li
+                      key={s._id}
+                      className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 p-6 bg-gradient-to-r from-gray-50 to-gray-100 rounded-xl shadow-md transform hover:scale-102 transition-all duration-200"
+                    >
+                      <div className="flex items-center gap-4">
+                        <div className="w-10 h-10 bg-indigo-100 rounded-full flex items-center justify-center">
+                          <svg
+                            className="w-5 h-5 text-indigo-600"
+                            fill="none"
+                            stroke="currentColor"
+                            viewBox="0 0 24 24"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth="2"
+                              d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                            />
+                          </svg>
+                        </div>
+                        <div>
+                          <p className="text-lg font-medium text-gray-800">
+                            {s.service.name}
+                          </p>
+                          <p className="text-sm text-gray-600">
+                            Quantity: {s.quantity}
+                          </p>
+                        </div>
                       </div>
                       {canEditEvent && (
-                        <div className="flex gap-4">
+                        <div className="flex gap-3">
                           {isEditing === s.service._id ? (
                             <>
                               <input
                                 type="number"
                                 value={editingQuantity}
-                                onChange={(e) => setEditingQuantity(parseInt(e.target.value, 10))}
-                                className="border border-gray-300 p-2 w-20 rounded"
+                                onChange={(e) =>
+                                  setEditingQuantity(
+                                    Math.max(1, parseInt(e.target.value))
+                                  )
+                                }
+                                className="w-20 p-2 border border-gray-200 rounded-lg bg-gray-50 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all duration-200"
                               />
                               <button
                                 onClick={handleEditService}
-                                className="bg-green-500 text-white px-4 py-2 rounded shadow-md hover:bg-green-600 transition-all"
+                                className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transform hover:scale-105 transition-all duration-200"
                               >
-                                Lưu
+                                Save
                               </button>
                               <button
                                 onClick={() => setIsEditing(null)}
-                                className="bg-gray-500 text-white px-4 py-2 rounded shadow-md hover:bg-gray-600 transition-all"
+                                className="bg-gray-500 text-white px-4 py-2 rounded-lg hover:bg-gray-600 transform hover:scale-105 transition-all duration-200"
                               >
-                                Hủy
+                                Cancel
                               </button>
                             </>
                           ) : (
@@ -293,15 +365,17 @@ const EventDetails = () => {
                                   setIsEditing(s.service._id);
                                   setEditingQuantity(s.quantity);
                                 }}
-                                className="bg-yellow-500 text-white px-4 py-2 rounded shadow-md hover:bg-yellow-600 transition-all"
+                                className="bg-yellow-500 text-white px-4 py-2 rounded-lg hover:bg-yellow-600 transform hover:scale-105 transition-all duration-200"
                               >
-                                Sửa
+                                Edit
                               </button>
                               <button
-                                onClick={() => handleDeleteService(s.service._id)}
-                                className="bg-red-500 text-white px-4 py-2 rounded shadow-md hover:bg-red-600 transition-all"
+                                onClick={() =>
+                                  handleDeleteService(s.service._id)
+                                }
+                                className="bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transform hover:scale-105 transition-all duration-200"
                               >
-                                Xóa
+                                Delete
                               </button>
                             </>
                           )}
@@ -311,14 +385,49 @@ const EventDetails = () => {
                   ))}
                 </ul>
               ) : (
-                <p className="text-gray-600">Chưa có dịch vụ nào được thêm.</p>
+                <div className="text-center py-12">
+                  <svg
+                    className="w-16 h-16 mx-auto text-gray-400"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth="2"
+                      d="M9 13h6m-3-3v6m5 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                    />
+                  </svg>
+                  <p className="mt-4 text-gray-500 text-lg">
+                    No services added yet.
+                  </p>
+                </div>
               )}
             </div>
           </>
         ) : (
-          <p className="text-center text-gray-600">Đang tải chi tiết sự kiện...</p>
+          <div className="text-center py-16">
+            <div className="animate-spin inline-block w-12 h-12 border-4 border-indigo-600 border-t-transparent rounded-full"></div>
+            <p className="mt-4 text-gray-600 text-lg">
+              Loading event details...
+            </p>
+          </div>
         )}
       </div>
+
+      {/* Custom Animation Styles */}
+      <style>
+        {`
+          @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+          }
+          .animate-fade-in {
+            animation: fadeIn 0.5s ease-out;
+          }
+        `}
+      </style>
     </div>
   );
 };

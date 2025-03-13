@@ -1,22 +1,24 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from "react";
 import {
   getEvents,
   createEvent,
   deleteEvent,
   updateEvent,
-} from '../services/eventService';
-import { getCategories } from '../services/categoryService';
+} from "../services/eventService";
+import { getCategories } from "../services/categoryService";
 
 const EventManagement = () => {
   const [events, setEvents] = useState([]);
   const [categories, setCategories] = useState([]);
   const [eventData, setEventData] = useState({
-    name: '',
-    date: '',
-    category: '',
-    location: '',
+    name: "",
+    date: "",
+    category: "",
+    location: "",
   });
   const [editingEventId, setEditingEventId] = useState(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
 
   useEffect(() => {
     fetchEvents();
@@ -24,12 +26,16 @@ const EventManagement = () => {
   }, []);
 
   const fetchEvents = async () => {
+    setLoading(true);
+    setError(null);
     try {
       const data = await getEvents();
       setEvents(data);
     } catch (error) {
-      console.error('Lỗi khi lấy danh sách sự kiện:', error);
-      alert('Không thể tải danh sách sự kiện!');
+      console.error("Error fetching events:", error);
+      setError("Unable to load event list!");
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -38,176 +44,261 @@ const EventManagement = () => {
       const data = await getCategories();
       setCategories(data);
     } catch (error) {
-      console.error('Lỗi khi lấy danh sách danh mục:', error);
-      alert('Không thể tải danh sách danh mục!');
+      console.error("Error fetching categories:", error);
+      setError("Unable to load category list!");
     }
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    setLoading(true);
+    setError(null);
     try {
       if (editingEventId) {
         await updateEvent(editingEventId, {
           ...eventData,
-          services: [], // Nếu cần thêm thông tin dịch vụ
+          services: [],
         });
-        alert('Cập nhật sự kiện thành công!');
+        alert("Event updated successfully!");
       } else {
         await createEvent({
           ...eventData,
           services: [],
         });
-        alert('Thêm sự kiện thành công!');
+        alert("Event added successfully!");
       }
       resetForm();
       fetchEvents();
     } catch (error) {
-      console.error('Lỗi chi tiết:', error.response?.data || error.message);
-      alert(`Không thể tạo/cập nhật sự kiện: ${error.response?.data?.message || error.message}`);
+      console.error("Error details:", error.response?.data || error.message);
+      alert(
+        `Unable to create/update event: ${
+          error.response?.data?.message || error.message
+        }`
+      );
+    } finally {
+      setLoading(false);
     }
   };
 
   const handleEdit = (event) => {
     setEventData({
       name: event.name,
-      date: event.date.split('T')[0], // Định dạng ngày cho input
-      category: event.category._id, // Lấy ID của danh mục
+      date: event.date.split("T")[0], // Format date for input
+      category: event.category._id,
       location: event.location,
     });
     setEditingEventId(event._id);
   };
 
   const handleDelete = async (id) => {
-    if (window.confirm('Bạn có chắc chắn muốn xóa sự kiện này không?')) {
+    if (window.confirm("Are you sure you want to delete this event?")) {
+      setLoading(true);
       try {
         await deleteEvent(id);
-        alert('Xóa sự kiện thành công!');
+        alert("Event deleted successfully!");
         fetchEvents();
       } catch (error) {
-        console.error('Lỗi khi xóa sự kiện:', error);
-        alert('Không thể xóa sự kiện!');
+        console.error("Error deleting event:", error);
+        alert("Unable to delete event!");
+      } finally {
+        setLoading(false);
       }
     }
   };
 
   const resetForm = () => {
-    setEventData({ name: '', date: '', category: '', location: '' });
+    setEventData({ name: "", date: "", category: "", location: "" });
     setEditingEventId(null);
   };
 
   return (
-    <div className="container mx-auto px-4">
-      <h2 className="text-3xl font-bold text-center mb-10 text-purple-600">
-        {editingEventId ? 'Cập Nhật Sự Kiện' : 'Thêm Sự Kiện'}
+    <div className="container mx-auto px-4 py-8">
+      <h2 className="text-3xl font-semibold text-gray-800 mb-8 text-center">
+        {editingEventId ? "Update Event" : "Add Event"}
       </h2>
 
-      {/* Form thêm/cập nhật sự kiện */}
+      {/* Form */}
       <form
         onSubmit={handleSubmit}
-        className="mb-10 bg-white shadow-md rounded-lg p-6"
+        className="bg-white shadow-lg rounded-xl p-6 mb-10 transition-all duration-300 hover:shadow-xl"
       >
-        <input
-          type="text"
-          placeholder="Tên sự kiện"
-          value={eventData.name}
-          onChange={(e) =>
-            setEventData({ ...eventData, name: e.target.value })
-          }
-          className="border border-gray-300 p-3 mb-4 w-full rounded"
-          required
-        />
-        <input
-          type="date"
-          value={eventData.date}
-          onChange={(e) =>
-            setEventData({ ...eventData, date: e.target.value })
-          }
-          className="border border-gray-300 p-3 mb-4 w-full rounded"
-          required
-        />
-        <select
-          value={eventData.category}
-          onChange={(e) =>
-            setEventData({ ...eventData, category: e.target.value })
-          }
-          className="border border-gray-300 p-3 mb-4 w-full rounded"
-          required
-        >
-          <option value="">-- Chọn Thể Loại --</option>
-          {categories.map((category) => (
-            <option key={category._id} value={category._id}>
-              {category.name}
-            </option>
-          ))}
-        </select>
-        <input
-          type="text"
-          placeholder="Địa điểm"
-          value={eventData.location}
-          onChange={(e) =>
-            setEventData({ ...eventData, location: e.target.value })
-          }
-          className="border border-gray-300 p-3 mb-6 w-full rounded"
-          required
-        />
-        <div className="flex justify-between">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Event Name
+            </label>
+            <input
+              type="text"
+              placeholder="Enter event name"
+              value={eventData.name}
+              onChange={(e) =>
+                setEventData({ ...eventData, name: e.target.value })
+              }
+              className="w-full p-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none transition-all"
+              required
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Date
+            </label>
+            <input
+              type="date"
+              value={eventData.date}
+              onChange={(e) =>
+                setEventData({ ...eventData, date: e.target.value })
+              }
+              className="w-full p-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none transition-all"
+              required
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Category
+            </label>
+            <select
+              value={eventData.category}
+              onChange={(e) =>
+                setEventData({ ...eventData, category: e.target.value })
+              }
+              className="w-full p-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none transition-all"
+              required
+            >
+              <option value="">-- Select Category --</option>
+              {categories.map((category) => (
+                <option key={category._id} value={category._id}>
+                  {category.name}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Location
+            </label>
+            <input
+              type="text"
+              placeholder="Enter location"
+              value={eventData.location}
+              onChange={(e) =>
+                setEventData({ ...eventData, location: e.target.value })
+              }
+              className="w-full p-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none transition-all"
+              required
+            />
+          </div>
+        </div>
+        <div className="flex gap-4 mt-6">
           <button
             type="submit"
-            className="bg-blue-500 text-white px-6 py-2 rounded-full shadow-md hover:bg-blue-600 transition-all"
+            disabled={loading}
+            className="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition-all disabled:bg-blue-400 flex items-center"
           >
-            {editingEventId ? 'Cập nhật' : 'Thêm'}
+            {loading ? (
+              <svg
+                className="animate-spin h-5 w-5 mr-2"
+                viewBox="0 0 24 24"
+              >
+                <circle
+                  className="opacity-25"
+                  cx="12"
+                  cy="12"
+                  r="10"
+                  stroke="currentColor"
+                  strokeWidth="4"
+                />
+                <path
+                  className="opacity-75"
+                  fill="currentColor"
+                  d="M4 12a8 8 0 018-8v8h8a8 8 0 01-16 0z"
+                />
+              </svg>
+            ) : null}
+            {editingEventId ? "Update" : "Add"}
           </button>
           {editingEventId && (
             <button
               type="button"
               onClick={resetForm}
-              className="bg-gray-500 text-white px-6 py-2 rounded-full shadow-md hover:bg-gray-600 transition-all"
+              className="bg-gray-500 text-white px-6 py-2 rounded-lg hover:bg-gray-600 transition-all"
             >
-              Hủy
+              Cancel
             </button>
           )}
         </div>
       </form>
 
-      {/* Danh sách sự kiện */}
-      <h3 className="text-2xl font-bold text-gray-700 mb-4">
-        Danh Sách Sự Kiện
+      {/* Event List */}
+      <h3 className="text-2xl font-semibold text-gray-700 mb-4">
+        Event List
       </h3>
-      <div className="bg-white shadow-md rounded-lg p-6">
-        {events.length > 0 ? (
+      <div className="bg-white shadow-lg rounded-xl p-6">
+        {loading ? (
+          <div className="flex justify-center py-8">
+            <svg
+              className="animate-spin h-8 w-8 text-blue-600"
+              viewBox="0 0 24 24"
+            >
+              <circle
+                className="opacity-25"
+                cx="12"
+                cy="12"
+                r="10"
+                stroke="currentColor"
+                strokeWidth="4"
+              />
+              <path
+                className="opacity-75"
+                fill="currentColor"
+                d="M4 12a8 8 0 018-8v8h8a8 8 0 01-16 0z"
+              />
+            </svg>
+          </div>
+        ) : error ? (
+          <p className="text-center py-8 text-red-600 font-medium">{error}</p>
+        ) : events.length > 0 ? (
           <ul className="divide-y divide-gray-200">
-            {events.map((e) => (
+            {events.map((event) => (
               <li
-                key={e._id}
-                className="flex justify-between items-center py-4 hover:bg-gray-50 transition-all duration-200 rounded-lg px-4"
+                key={event._id}
+                className="flex flex-col md:flex-row justify-between items-start md:items-center py-4 hover:bg-gray-50 transition-all duration-200 rounded-lg px-4"
               >
-                <div>
-                  <h4 className="font-bold text-lg text-gray-800">{e.name}</h4>
+                <div className="mb-4 md:mb-0">
+                  <h4 className="font-semibold text-lg text-gray-800">
+                    {event.name}
+                  </h4>
                   <p className="text-gray-600">
-                    Ngày: {new Date(e.date).toLocaleDateString()}
+                    Date: {new Date(event.date).toLocaleDateString()}
                   </p>
-                  <p className="text-gray-600">Thể loại: {e.category?.name}</p>
-                  <p className="text-gray-600">Địa điểm: {e.location}</p>
+                  <p className="text-gray-600">
+                    Category: {event.category?.name}
+                  </p>
+                  <p className="text-gray-600">Location: {event.location}</p>
                 </div>
-                <div className="flex gap-4">
+                <div className="flex gap-3">
                   <button
-                    onClick={() => handleEdit(e)}
-                    className="bg-yellow-500 text-white px-4 py-2 rounded-full shadow-md hover:bg-yellow-600 transition-all"
+                    onClick={() => handleEdit(event)}
+                    className="bg-yellow-500 text-white px-4 py-2 rounded-lg hover:bg-yellow-600 transition-all"
+                    aria-label="Edit event"
                   >
-                    Sửa
+                    Edit
                   </button>
                   <button
-                    onClick={() => handleDelete(e._id)}
-                    className="bg-red-500 text-white px-4 py-2 rounded-full shadow-md hover:bg-red-600 transition-all"
+                    onClick={() => handleDelete(event._id)}
+                    className="bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition-all"
+                    aria-label="Delete event"
                   >
-                    Xóa
+                    Delete
                   </button>
                 </div>
               </li>
             ))}
           </ul>
         ) : (
-          <p className="text-gray-600 text-center">Không có sự kiện nào.</p>
+          <p className="text-center py-8 text-gray-500 italic">
+            No events found.
+          </p>
         )}
       </div>
     </div>

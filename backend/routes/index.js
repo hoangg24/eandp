@@ -1,11 +1,9 @@
-    import express from 'express';
-    const router = express.Router();
+import express from "express";
+const router = express.Router();
 
+import userRoutes from "./user.js";
 
-    import userRoutes from './user.js';
+// Sử dụng các routes
+router.use("/users", userRoutes);
 
-
-    // Sử dụng các routes
-    router.use('/users', userRoutes);
-
-    export default router;
+export default router;

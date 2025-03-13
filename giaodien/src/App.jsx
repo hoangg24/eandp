@@ -1,4 +1,4 @@
-import { Routes, Route } from "react-router-dom";
+import { Routes, Route, useLocation } from "react-router-dom";
 import Layout from "./components/Layout.jsx";
 import Register from "./pages/Register.jsx";
 import Login from "./pages/Login.jsx";
@@ -19,6 +19,28 @@ import CreateEvent from './components/CreateEvent.jsx';
 import CategoryManagement from './components/CategoryManagement.jsx';
 import PaymentStatus from './components/PaymentStatus.jsx';
 import PaymentResult from './components/PaymentResult.jsx';
+import ResetPasswordRequest from "./pages/ResetPasswordRequest.jsx";
+import ResetPassword from "./pages/ResetPassword.jsx";
+
+const LoginSuccess = () => {
+  const location = useLocation();
+  const params = new URLSearchParams(location.search);
+  const token = params.get('token');
+  const id = params.get('id');
+  const username = params.get('username');
+  const role = params.get('role');
+
+  if (token && id && username && role) {
+    localStorage.setItem('token', token);
+    localStorage.setItem('userId', id);
+    localStorage.setItem('username', username);
+    localStorage.setItem('role', role);
+    window.location.href = '/';
+  }
+
+  return null;
+};
+
 const App = () => {
   return (
     <Routes>
@@ -38,6 +60,9 @@ const App = () => {
         <Route path="categories" element={<CategoryManagement />} />
         <Route path="payment/status/:orderId" element={<PaymentStatus />} />
         <Route path="/payment-result" element={<PaymentResult />} />
+        <Route path="reset-password-request" element={<ResetPasswordRequest/>}></Route>
+        <Route path="reset-password/:token" element={<ResetPassword/>}></Route>
+        <Route path="login-success" element={<LoginSuccess />} />
       </Route>
 
       {/* Protected Admin Routes */}

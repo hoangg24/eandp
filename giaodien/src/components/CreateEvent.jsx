@@ -1,35 +1,34 @@
-import React, { useState, useEffect } from 'react';
-import axios from 'axios';
-import { useNavigate } from 'react-router-dom';
+import React, { useState, useEffect } from "react";
+import axios from "axios";
+import { useNavigate } from "react-router-dom";
 
 const CreateEvent = () => {
-  const [categories, setCategories] = useState([]); // Danh sách Category
+  const [categories, setCategories] = useState([]);
   const [eventData, setEventData] = useState({
-    name: '',
-    date: '',
-    category: '', // ID của Category
-    location: '',
+    name: "",
+    date: "",
+    category: "",
+    location: "",
   });
-  const [loading, setLoading] = useState(false); // Trạng thái loading
-  const [error, setError] = useState(''); // Trạng thái lỗi
-  const [successMessage, setSuccessMessage] = useState(''); // Thông báo thành công
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+  const [successMessage, setSuccessMessage] = useState("");
   const navigate = useNavigate();
 
-  // Lấy danh sách category khi component được mount
   useEffect(() => {
     const fetchCategories = async () => {
       setLoading(true);
       try {
-        const token = localStorage.getItem('token'); // Lấy token từ localStorage
-        const response = await axios.get('http://localhost:5000/api/categories', {
+        const token = localStorage.getItem("token");
+        const response = await axios.get("http://localhost:5000/api/categories", {
           headers: {
             Authorization: `Bearer ${token}`,
           },
         });
         setCategories(response.data);
       } catch (error) {
-        console.error('Lỗi khi lấy danh sách category:', error);
-        setError('Không thể tải danh sách category!');
+        console.error("Error fetching categories:", error);
+        setError("Unable to load category list!");
       } finally {
         setLoading(false);
       }
@@ -39,17 +38,17 @@ const CreateEvent = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setError('');
-    setSuccessMessage('');
+    setError("");
+    setSuccessMessage("");
     setLoading(true);
 
     try {
-      const token = localStorage.getItem('token'); // Lấy token từ localStorage
+      const token = localStorage.getItem("token");
       await axios.post(
-        'http://localhost:5000/api/event/create',
+        "http://localhost:5000/api/event/create",
         {
           ...eventData,
-          services: [], // Gửi mảng rỗng nếu không có dịch vụ
+          services: [],
         },
         {
           headers: {
@@ -57,14 +56,14 @@ const CreateEvent = () => {
           },
         }
       );
-      setSuccessMessage('Tạo sự kiện thành công!');
+      setSuccessMessage("Event created successfully!");
       setTimeout(() => {
-        navigate('/eventlist');
-      }, 1500); // Chuyển hướng sau 1.5 giây
+        navigate("/eventlist");
+      }, 1500);
     } catch (error) {
-      console.error('Lỗi khi tạo sự kiện:', error);
+      console.error("Error creating event:", error);
       setError(
-        error.response?.data?.message || 'Không thể tạo sự kiện. Vui lòng thử lại!'
+        error.response?.data?.message || "Unable to create event. Please try again!"
       );
     } finally {
       setLoading(false);
@@ -72,97 +71,126 @@ const CreateEvent = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-indigo-100 via-purple-50 to-pink-100 py-16">
-      <div className="container mx-auto px-4 max-w-3xl">
-        <h2 className="text-4xl font-bold text-center mb-8 text-purple-600">
-          Tạo Sự Kiện
+    <div className="min-h-screen bg-gray-50 py-12">
+      <div className="container mx-auto px-4 max-w-2xl">
+        <h2 className="text-3xl font-semibold text-gray-800 mb-8 text-center">
+          Create Event
         </h2>
 
-        {/* Hiển thị trạng thái lỗi hoặc thành công */}
+        {/* Success/Error Messages */}
         {error && (
-          <p className="text-red-500 bg-red-100 p-2 rounded-lg mb-4">
+          <p className="text-red-600 bg-red-100 p-3 rounded-lg mb-6 text-center">
             {error}
           </p>
         )}
         {successMessage && (
-          <p className="text-green-500 bg-green-100 p-2 rounded-lg mb-4">
+          <p className="text-green-600 bg-green-100 p-3 rounded-lg mb-6 text-center">
             {successMessage}
           </p>
         )}
 
-        {/* Hiển thị thông báo đang tải */}
-        {loading && (
-          <p className="text-blue-500 bg-blue-100 p-2 rounded-lg mb-4">
-            Đang xử lý, vui lòng chờ...
-          </p>
-        )}
-
+        {/* Form */}
         <form
           onSubmit={handleSubmit}
-          className="bg-white shadow-md rounded-lg p-8"
+          className="bg-white shadow-lg rounded-xl p-8 transition-all duration-300 hover:shadow-xl"
         >
-          <div className="space-y-4">
-            <input
-              type="text"
-              placeholder="Tên sự kiện"
-              value={eventData.name}
-              onChange={(e) =>
-                setEventData({ ...eventData, name: e.target.value })
-              }
-              required
-              className="border border-gray-300 rounded-lg p-3 w-full focus:outline-none focus:ring-2 focus:ring-purple-600"
-            />
-            <input
-              type="date"
-              value={eventData.date}
-              onChange={(e) =>
-                setEventData({ ...eventData, date: e.target.value })
-              }
-              required
-              className="border border-gray-300 rounded-lg p-3 w-full focus:outline-none focus:ring-2 focus:ring-purple-600"
-            />
-
-            {/* Dropdown chọn Category */}
-            <select
-              value={eventData.category}
-              onChange={(e) =>
-                setEventData({ ...eventData, category: e.target.value })
-              }
-              required
-              className="border border-gray-300 rounded-lg p-3 w-full focus:outline-none focus:ring-2 focus:ring-purple-600"
-            >
-              <option value="" disabled>
-                Chọn danh mục
-              </option>
-              {categories.map((category) => (
-                <option key={category._id} value={category._id}>
-                  {category.name}
+          <div className="space-y-6">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Event Name
+              </label>
+              <input
+                type="text"
+                placeholder="Enter event name"
+                value={eventData.name}
+                onChange={(e) =>
+                  setEventData({ ...eventData, name: e.target.value })
+                }
+                required
+                className="w-full p-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none transition-all"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Date
+              </label>
+              <input
+                type="date"
+                value={eventData.date}
+                onChange={(e) =>
+                  setEventData({ ...eventData, date: e.target.value })
+                }
+                required
+                className="w-full p-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none transition-all"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Category
+              </label>
+              <select
+                value={eventData.category}
+                onChange={(e) =>
+                  setEventData({ ...eventData, category: e.target.value })
+                }
+                required
+                className="w-full p-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none transition-all"
+              >
+                <option value="" disabled>
+                  Select a category
                 </option>
-              ))}
-            </select>
-
-            <input
-              type="text"
-              placeholder="Địa điểm"
-              value={eventData.location}
-              onChange={(e) =>
-                setEventData({ ...eventData, location: e.target.value })
-              }
-              required
-              className="border border-gray-300 rounded-lg p-3 w-full focus:outline-none focus:ring-2 focus:ring-purple-600"
-            />
+                {categories.map((category) => (
+                  <option key={category._id} value={category._id}>
+                    {category.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Location
+              </label>
+              <input
+                type="text"
+                placeholder="Enter location"
+                value={eventData.location}
+                onChange={(e) =>
+                  setEventData({ ...eventData, location: e.target.value })
+                }
+                required
+                className="w-full p-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none transition-all"
+              />
+            </div>
           </div>
           <div className="flex justify-center mt-8">
             <button
               type="submit"
-              disabled={loading} // Vô hiệu hóa khi đang tải
-              className={`px-6 py-3 rounded-full shadow-md transition-all ${
-                loading
-                  ? 'bg-gray-400 cursor-not-allowed'
-                  : 'bg-purple-600 text-white hover:bg-purple-700'
+              disabled={loading}
+              className={`bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition-all flex items-center ${
+                loading ? "bg-gray-400 cursor-not-allowed" : ""
               }`}
             >
-              {loading ? 'Đang xử lý...' : 'Tạo Sự Kiện'}
+              {loading ? (
+                <svg
+                  className="animate-spin h-5 w-5 mr-2"
+                  viewBox="0 0 24 24"
+                >
+                  <circle
+                    className="opacity-25"
+                    cx="12"
+                    cy="12"
+                    r="10"
+                    stroke="currentColor"
+                    strokeWidth="4"
+                  />
+                  <path
+                    className="opacity-75"
+                    fill="currentColor"
+                    d="M4 12a8 8 0 018-8v8h8a8 8 0 01-16 0z"
+                  />
+                </svg>
+              ) : null}
+              {loading ? "Processing..." : "Create Event"}
             </button>
           </div>
         </form>

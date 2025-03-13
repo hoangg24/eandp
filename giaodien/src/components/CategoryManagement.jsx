@@ -1,156 +1,211 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from "react";
 import {
   getCategories,
   createCategory,
   updateCategory,
   deleteCategory,
-} from '../services/categoryService';
+} from "../services/categoryService";
 
 const CategoryManagement = () => {
   const [categories, setCategories] = useState([]);
-  const [formData, setFormData] = useState({ name: '' });
-  const [editingCategoryId, setEditingCategoryId] = useState(null); // ID của Category đang được chỉnh sửa
+  const [formData, setFormData] = useState({ name: "" });
+  const [editingCategoryId, setEditingCategoryId] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
 
-  // Lấy danh sách Category
   useEffect(() => {
     fetchCategories();
   }, []);
 
   const fetchCategories = async () => {
     setLoading(true);
+    setError(null);
     try {
       const data = await getCategories();
       setCategories(data);
     } catch (error) {
-      console.error('Lỗi khi lấy danh sách Category:', error);
+      console.error("Error fetching categories:", error);
+      setError("Unable to load category list!");
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   };
 
-  // Xử lý khi gửi form
   const handleSubmit = async (e) => {
     e.preventDefault();
+    setLoading(true);
+    setError(null);
     try {
       if (editingCategoryId) {
-        // Cập nhật Category
         await updateCategory(editingCategoryId, formData);
-        alert('Cập nhật Category thành công!');
+        alert("Category updated successfully!");
       } else {
-        // Tạo mới Category
         await createCategory(formData);
-        alert('Thêm mới Category thành công!');
+        alert("Category added successfully!");
       }
       resetForm();
       fetchCategories();
     } catch (error) {
-      console.error('Lỗi khi thêm/cập nhật Category:', error);
-      alert('Không thể thêm/cập nhật Category!');
+      console.error("Error adding/updating category:", error);
+      alert("Unable to add/update category!");
+    } finally {
+      setLoading(false);
     }
   };
 
-  // Chỉnh sửa Category
   const handleEdit = (category) => {
     setFormData({ name: category.name });
     setEditingCategoryId(category._id);
   };
 
-  // Xóa Category
   const handleDelete = async (id) => {
-    if (window.confirm('Bạn có chắc chắn muốn xóa Category này không?')) {
+    if (window.confirm("Are you sure you want to delete this category?")) {
+      setLoading(true);
       try {
         await deleteCategory(id);
-        alert('Xóa Category thành công!');
+        alert("Category deleted successfully!");
         fetchCategories();
       } catch (error) {
-        console.error('Lỗi khi xóa Category:', error);
-        alert('Không thể xóa Category!');
+        console.error("Error deleting category:", error);
+        alert("Unable to delete category!");
+      } finally {
+        setLoading(false);
       }
     }
   };
 
-  // Reset form
   const resetForm = () => {
-    setFormData({ name: '' });
+    setFormData({ name: "" });
     setEditingCategoryId(null);
   };
 
   return (
-    <div className="container mx-auto">
-      <h2 className="text-3xl font-bold text-center mb-10 text-purple-600">
-        {editingCategoryId ? 'Cập nhật Category' : 'Thêm mới Category'}
+    <div className="container mx-auto px-4 py-8">
+      <h2 className="text-3xl font-semibold text-gray-800 mb-8 text-center">
+        {editingCategoryId ? "Update Category" : "Add New Category"}
       </h2>
 
-      {/* Form thêm/cập nhật Category */}
+      {/* Form */}
       <form
         onSubmit={handleSubmit}
-        className="mb-10 bg-white shadow-md rounded p-6"
+        className="bg-white shadow-lg rounded-xl p-6 mb-10 transition-all duration-300 hover:shadow-xl"
       >
-        <input
-          type="text"
-          placeholder="Tên Category"
-          value={formData.name}
-          onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-          className="border border-gray-300 p-3 mb-4 w-full rounded"
-          required
-        />
+        <div className="mb-6">
+          <label className="block text-sm font-medium text-gray-700 mb-1">
+            Category Name
+          </label>
+          <input
+            type="text"
+            placeholder="Enter category name"
+            value={formData.name}
+            onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+            className="w-full p-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none transition-all"
+            required
+          />
+        </div>
         <div className="flex gap-4">
           <button
             type="submit"
-            className="bg-blue-500 text-white px-6 py-2 rounded-full shadow-md hover:bg-blue-600 transition-all"
+            disabled={loading}
+            className="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition-all disabled:bg-blue-400 flex items-center"
           >
-            {editingCategoryId ? 'Cập nhật' : 'Thêm mới'}
+            {loading ? (
+              <svg
+                className="animate-spin h-5 w-5 mr-2"
+                viewBox="0 0 24 24"
+              >
+                <circle
+                  className="opacity-25"
+                  cx="12"
+                  cy="12"
+                  r="10"
+                  stroke="currentColor"
+                  strokeWidth="4"
+                />
+                <path
+                  className="opacity-75"
+                  fill="currentColor"
+                  d="M4 12a8 8 0 018-8v8h8a8 8 0 01-16 0z"
+                />
+              </svg>
+            ) : null}
+            {editingCategoryId ? "Update" : "Add"}
           </button>
           {editingCategoryId && (
             <button
               type="button"
               onClick={resetForm}
-              className="bg-gray-500 text-white px-6 py-2 rounded-full shadow-md hover:bg-gray-600 transition-all"
+              className="bg-gray-500 text-white px-6 py-2 rounded-lg hover:bg-gray-600 transition-all"
             >
-              Hủy
+              Cancel
             </button>
           )}
         </div>
       </form>
 
-      {/* Danh sách Category */}
-      <div className="bg-white shadow-md rounded-lg p-6">
-        <h3 className="text-2xl font-bold text-gray-700 mb-4">
-          Danh sách Category
+      {/* Category List */}
+      <div className="bg-white shadow-lg rounded-xl p-6">
+        <h3 className="text-2xl font-semibold text-gray-700 mb-6">
+          Category List
         </h3>
         {loading ? (
-          <p>Đang tải...</p>
+          <div className="flex justify-center py-8">
+            <svg
+              className="animate-spin h-8 w-8 text-blue-600"
+              viewBox="0 0 24 24"
+            >
+              <circle
+                className="opacity-25"
+                cx="12"
+                cy="12"
+                r="10"
+                stroke="currentColor"
+                strokeWidth="4"
+              />
+              <path
+                className="opacity-75"
+                fill="currentColor"
+                d="M4 12a8 8 0 018-8v8h8a8 8 0 01-16 0z"
+              />
+            </svg>
+          </div>
+        ) : error ? (
+          <p className="text-center py-8 text-red-600 font-medium">{error}</p>
         ) : categories.length > 0 ? (
           <ul className="divide-y divide-gray-200">
             {categories.map((category) => (
               <li
                 key={category._id}
-                className="flex justify-between items-center py-4 hover:bg-gray-50 transition-all duration-200 rounded-lg px-4"
+                className="flex flex-col md:flex-row justify-between items-start md:items-center py-4 hover:bg-gray-50 transition-all duration-200 rounded-lg px-4"
               >
-                <div>
-                  <h4 className="font-bold text-lg text-gray-800">
+                <div className="mb-4 md:mb-0">
+                  <h4 className="text-lg font-semibold text-gray-800">
                     {category.name}
                   </h4>
                 </div>
-                <div className="flex gap-4">
+                <div className="flex gap-3">
                   <button
                     onClick={() => handleEdit(category)}
-                    className="bg-yellow-500 text-white px-4 py-2 rounded-full shadow-md hover:bg-yellow-600 transition-all"
+                    className="bg-yellow-500 text-white px-4 py-2 rounded-lg hover:bg-yellow-600 transition-all"
+                    aria-label="Edit category"
                   >
-                    Sửa
+                    Edit
                   </button>
                   <button
                     onClick={() => handleDelete(category._id)}
-                    className="bg-red-500 text-white px-4 py-2 rounded-full shadow-md hover:bg-red-600 transition-all"
+                    className="bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition-all"
+                    aria-label="Delete category"
                   >
-                    Xóa
+                    Delete
                   </button>
                 </div>
               </li>
             ))}
           </ul>
         ) : (
-          <p className="text-gray-600 text-center">Không có Category nào.</p>
+          <p className="text-center py-8 text-gray-500 italic">
+            No categories found.
+          </p>
         )}
       </div>
     </div>

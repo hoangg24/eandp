@@ -56,3 +56,4 @@ export const deleteService = async (id) => {
         throw error;
     }
 };
+
