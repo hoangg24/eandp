@@ -1,14 +1,20 @@
 import { useState } from 'react';
 import axios from 'axios';
 import { useParams, useNavigate } from 'react-router-dom';
-import { motion } from 'framer-motion'; // Adding framer-motion for animations
+import { motion } from 'framer-motion';
+import { Lock, Eye, EyeOff, Loader2 } from 'lucide-react';
 
 const ResetPassword = () => {
   const { token } = useParams();
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [message, setMessage] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
+
+  const togglePasswordVisibility = () => {
+    setShowPassword(!showPassword);
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -26,73 +32,105 @@ const ResetPassword = () => {
     }
   };
 
+  const containerVariants = {
+    hidden: { opacity: 0, y: 20 },
+    visible: {
+      opacity: 1,
+      y: 0,
+      transition: { duration: 0.5, ease: "easeOut" },
+    },
+  };
+
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-indigo-500 via-purple-500 to-pink-500">
-      <motion.div 
-        initial={{ opacity: 0, scale: 0.95 }}
-        animate={{ opacity: 1, scale: 1 }}
-        transition={{ duration: 0.5 }}
-        className="max-w-md w-full m-4 space-y-8 bg-white/95 backdrop-blur-lg p-8 rounded-2xl shadow-2xl border border-white/30"
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-indigo-200 via-purple-100 to-pink-100 p-4">
+      <motion.div
+        variants={containerVariants}
+        initial="hidden"
+        animate="visible"
+        className="max-w-md w-full bg-white/90 backdrop-blur-lg p-8 rounded-3xl shadow-2xl border border-white/30"
       >
-        <div className="text-center">
-          <motion.h2 
-            initial={{ y: -20 }}
-            animate={{ y: 0 }}
-            className="mt-6 text-3xl font-bold text-gray-900 tracking-tight bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent"
+        {/* Header */}
+        <div className="text-center mb-8">
+          <motion.div
+            className="mx-auto h-14 w-14 flex items-center justify-center rounded-full bg-gradient-to-r from-indigo-500 to-purple-500 shadow-lg"
+            whileHover={{ scale: 1.1 }}
+            transition={{ type: "spring", stiffness: 300 }}
           >
-            Reset Your Password
-          </motion.h2>
-          <p className="mt-2 text-sm text-gray-600">Enter your new password below</p>
+            <Lock className="h-7 w-7 text-white" />
+          </motion.div>
+          <h2 className="mt-6 text-4xl font-bold text-gray-900 bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">
+            New Password
+          </h2>
+          <p className="mt-2 text-sm text-gray-600 tracking-wide">
+            Set your new password below
+          </p>
         </div>
 
-        <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
-          <div className="space-y-5">
-            <div className="relative">
-              <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-1">
+        {/* Form */}
+        <form onSubmit={handleSubmit} className="space-y-6">
+          <div className="space-y-6">
+            {/* Password Field */}
+            <div className="relative group">
+              <label
+                htmlFor="password"
+                className="block text-sm font-medium text-gray-700 mb-1.5 transition-all duration-300 group-focus-within:text-indigo-600"
+              >
                 New Password
               </label>
-              <motion.input
-                whileFocus={{ scale: 1.02 }}
-                id="password"
-                name="password"
-                type="password"
-                required
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                className="appearance-none block w-full px-4 py-3 border border-gray-200 rounded-lg shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all duration-200 bg-gray-50"
-                placeholder="••••••••"
-              />
+              <div className="relative">
+                <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400 group-focus-within:text-indigo-500 transition-colors" />
+                <motion.input
+                  whileFocus={{ scale: 1.01 }}
+                  id="password"
+                  name="password"
+                  type={showPassword ? "text" : "password"}
+                  required
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  className="w-full pl-10 pr-12 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-transparent shadow-sm transition-all duration-300 hover:border-indigo-300 text-gray-900 placeholder-gray-400"
+                  placeholder="••••••••"
+                />
+                <button
+                  type="button"
+                  onClick={togglePasswordVisibility}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-indigo-500 focus:outline-none transition-colors duration-200"
+                  aria-label={showPassword ? "Hide password" : "Show password"}
+                >
+                  {showPassword ? (
+                    <EyeOff className="h-5 w-5" />
+                  ) : (
+                    <Eye className="h-5 w-5" />
+                  )}
+                </button>
+              </div>
             </div>
           </div>
 
+          {/* Submit Button */}
           <motion.button
-            whileHover={{ scale: 1.03 }}
+            whileHover={{ scale: 1.02 }}
             whileTap={{ scale: 0.98 }}
             type="submit"
             disabled={isLoading}
-            className="group relative w-full flex justify-center py-3 px-4 border border-transparent text-sm font-semibold rounded-lg text-white bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-70 disabled:cursor-not-allowed transition-all duration-200"
+            className="w-full flex justify-center items-center py-3 px-4 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-xl font-medium shadow-md hover:from-indigo-700 hover:to-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-60 disabled:cursor-not-allowed transition-all duration-300"
           >
             {isLoading ? (
-              <div className="flex items-center">
-                <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                </svg>
-                Processing...
-              </div>
+              <Loader2 className="h-5 w-5 animate-spin" />
             ) : (
-              'Reset Password'
+              "Reset Password"
             )}
           </motion.button>
 
+          {/* Message Display */}
           {message && (
             <motion.p
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              className={`mt-2 text-center text-sm ${
-                message.includes('error') || message.includes('failed') 
-                  ? 'text-red-600' 
-                  : 'text-green-600'
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.3 }}
+              className={`mt-2 text-center text-sm font-medium ${
+                message.includes('error') || message.includes('failed')
+                  ? 'text-red-600 bg-red-50 p-2 rounded-lg'
+                  : 'text-green-600 bg-green-50 p-2 rounded-lg'
               }`}
             >
               {message}
@@ -100,17 +138,18 @@ const ResetPassword = () => {
           )}
         </form>
 
-        <motion.div 
+        {/* Back to Login */}
+        <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
-          transition={{ delay: 0.2 }}
-          className="text-center"
+          transition={{ delay: 0.3 }}
+          className="text-center mt-6"
         >
           <button
             onClick={() => navigate('/login')}
-            className="text-sm text-indigo-600 hover:text-indigo-800 transition-colors duration-200"
+            className="text-sm font-medium text-indigo-600 hover:text-indigo-700 transition-colors duration-200"
           >
-            Back to Login
+            Return to Login
           </button>
         </motion.div>
       </motion.div>

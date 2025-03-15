@@ -1,11 +1,13 @@
 import React, { useState, useEffect } from "react";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
+import { Receipt, Trash2, Eye, CreditCard, Search, RefreshCw } from 'lucide-react';
 
 const InvoiceManagement = () => {
   const [invoices, setInvoices] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [searchTerm, setSearchTerm] = useState("");
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -85,87 +87,125 @@ const InvoiceManagement = () => {
     }
   };
 
-  return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 py-12 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-5xl mx-auto">
-        <h2 className="text-3xl font-extrabold text-center text-indigo-700 mb-8">
-          Invoice Management
-        </h2>
+  const filteredInvoices = invoices.filter(invoice => 
+    (invoice.event?.name || "").toLowerCase().includes(searchTerm.toLowerCase())
+  );
 
-        <div className="bg-white shadow-xl rounded-xl p-6 md:p-8 transform transition-all hover:shadow-2xl">
+  const getStatusColor = (status) => {
+    switch (status) {
+      case "Paid":
+        return "bg-emerald-100 text-emerald-700 border-emerald-200";
+      case "Canceled":
+        return "bg-red-100 text-red-700 border-red-200";
+      default:
+        return "bg-amber-100 text-amber-700 border-amber-200";
+    }
+  };
+
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-purple-50 to-pink-50 py-8 px-4 sm:px-6 lg:px-8">
+      <div className="max-w-7xl mx-auto">
+        <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-8">
+          <div className="flex items-center space-x-3 mb-4 md:mb-0">
+            <Receipt className="w-8 h-8 text-indigo-600" />
+            <h2 className="text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-indigo-600 to-purple-600">
+              Invoice Management
+            </h2>
+          </div>
+          
+          <div className="flex flex-col sm:flex-row gap-4">
+            <div className="relative">
+              <input
+                type="text"
+                placeholder="Search by event name..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="pl-10 pr-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none w-full sm:w-64"
+              />
+              <Search className="absolute left-3 top-2.5 h-5 w-5 text-gray-400" />
+            </div>
+            
+            <button
+              onClick={fetchInvoices}
+              className="flex items-center justify-center px-4 py-2 bg-white text-indigo-600 rounded-lg border border-indigo-200 hover:bg-indigo-50 transition-all duration-200"
+            >
+              <RefreshCw className="w-5 h-5 mr-2" />
+              Refresh
+            </button>
+          </div>
+        </div>
+
+        <div className="bg-white rounded-xl shadow-xl overflow-hidden border border-gray-100">
           {loading ? (
-            <div className="flex justify-center items-center h-64">
-              <div className="animate-spin rounded-full h-12 w-12 border-t-4 border-indigo-500"></div>
+            <div className="flex flex-col items-center justify-center h-64 space-y-4">
+              <div className="animate-spin rounded-full h-12 w-12 border-t-4 border-b-4 border-indigo-600"></div>
+              <p className="text-gray-500 font-medium">Loading invoices...</p>
             </div>
           ) : error ? (
-            <div className="text-center py-8 bg-red-50 text-red-600 p-6 rounded-lg shadow-md">
-              <p>{error}</p>
+            <div className="p-8 text-center">
+              <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-red-100 text-red-600 mb-4">
+                <span className="text-2xl">!</span>
+              </div>
+              <h3 className="text-lg font-semibold text-gray-900 mb-2">Error Loading Invoices</h3>
+              <p className="text-gray-600">{error}</p>
             </div>
-          ) : invoices.length > 0 ? (
+          ) : filteredInvoices.length > 0 ? (
             <div className="overflow-x-auto">
-              <table className="w-full table-auto text-left text-sm">
+              <table className="w-full">
                 <thead>
-                  <tr className="bg-indigo-50 text-indigo-700 font-semibold">
-                    <th className="py-4 px-6 rounded-tl-lg">Invoice ID</th>
-                    <th className="py-4 px-6">Event Name</th>
-                    <th className="py-4 px-6">Total Amount</th>
-                    <th className="py-4 px-6">Status</th>
-                    <th className="py-4 px-6 rounded-tr-lg">Actions</th>
+                  <tr className="bg-gray-50 border-b border-gray-100">
+                    <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Invoice ID</th>
+                    <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Event Name</th>
+                    <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Total Amount</th>
+                    <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Status</th>
+                    <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Actions</th>
                   </tr>
                 </thead>
-                <tbody>
-                  {invoices.map((invoice, index) => (
+                <tbody className="divide-y divide-gray-100">
+                  {filteredInvoices.map((invoice) => (
                     <tr
                       key={invoice._id}
-                      className={`border-t hover:bg-gray-50 transition-all duration-200 ${
-                        index === invoices.length - 1 ? "border-b" : ""
-                      }`}
+                      className="hover:bg-gray-50 transition-colors duration-200"
                     >
-                      <td className="py-4 px-6 text-gray-700">{invoice._id}</td>
-                      <td className="py-4 px-6 text-gray-700">
+                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                        {invoice._id}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
                         {invoice.event?.name || "Not specified"}
                       </td>
-                      <td className="py-4 px-6 text-gray-700">
-                        {invoice.totalAmount?.toLocaleString() || 0} VND
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 font-medium">
+                        {invoice.totalAmount?.toLocaleString()} VND
                       </td>
-                      <td className="py-4 px-6">
-                        <span
-                          className={`px-3 py-1 rounded-full text-sm font-medium ${
-                            invoice.status === "Paid"
-                              ? "bg-green-100 text-green-700"
-                              : invoice.status === "Canceled"
-                              ? "bg-red-100 text-red-700"
-                              : "bg-yellow-100 text-yellow-700"
-                          }`}
-                        >
-                          {invoice.status || "N/A"}
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium border ${getStatusColor(invoice.status)}`}>
+                          {invoice.status || "Pending"}
                         </span>
                       </td>
-                      <td className="py-4 px-6 flex gap-3">
+                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium space-x-2">
                         <button
                           onClick={() => handleViewInvoice(invoice._id)}
-                          className="px-4 py-2 bg-indigo-600 text-white rounded-lg font-semibold shadow-md hover:bg-indigo-700 transition-all duration-200"
-                          aria-label="View invoice details"
+                          className="inline-flex items-center px-3 py-1.5 bg-indigo-50 text-indigo-600 rounded-md hover:bg-indigo-100 transition-colors duration-200"
                         >
+                          <Eye className="w-4 h-4 mr-1" />
                           View
                         </button>
                         <button
                           onClick={() => handleDeleteInvoice(invoice._id)}
-                          className="px-4 py-2 bg-red-600 text-white rounded-lg font-semibold shadow-md hover:bg-red-700 transition-all duration-200"
-                          aria-label="Delete invoice"
+                          className="inline-flex items-center px-3 py-1.5 bg-red-50 text-red-600 rounded-md hover:bg-red-100 transition-colors duration-200"
                         >
+                          <Trash2 className="w-4 h-4 mr-1" />
                           Delete
                         </button>
                         <button
                           onClick={() => handlePayment(invoice)}
-                          className={`px-4 py-2 rounded-lg font-semibold shadow-md transition-all duration-200 ${
-                            invoice.status === "Paid"
-                              ? "bg-gray-300 text-gray-600 cursor-not-allowed"
-                              : "bg-yellow-500 text-white hover:bg-yellow-600"
-                          }`}
-                          aria-label="Pay invoice"
                           disabled={invoice.status === "Paid"}
+                          className={`inline-flex items-center px-3 py-1.5 rounded-md transition-colors duration-200 ${
+                            invoice.status === "Paid"
+                              ? "bg-gray-100 text-gray-400 cursor-not-allowed"
+                              : "bg-emerald-50 text-emerald-600 hover:bg-emerald-100"
+                          }`}
                         >
+                          <CreditCard className="w-4 h-4 mr-1" />
                           Pay
                         </button>
                       </td>
@@ -175,9 +215,10 @@ const InvoiceManagement = () => {
               </table>
             </div>
           ) : (
-            <p className="text-center py-8 text-gray-500 italic">
-              No invoices found.
-            </p>
+            <div className="flex flex-col items-center justify-center h-64 space-y-4">
+              <Receipt className="w-16 h-16 text-gray-300" />
+              <p className="text-gray-500 font-medium">No invoices found</p>
+            </div>
           )}
         </div>
       </div>

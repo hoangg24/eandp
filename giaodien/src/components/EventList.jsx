@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from "react";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
+import { motion } from "framer-motion";
+import { MapPin, Calendar, Tag, Users, Clock, Globe, Lock } from "lucide-react";
 
 const EventList = () => {
   const [events, setEvents] = useState([]);
@@ -42,8 +44,8 @@ const EventList = () => {
   const handleUpdateStatus = async (eventId, currentStatus) => {
     try {
       const token = localStorage.getItem("token");
-      const response = await axios.put(
-        `http://localhost:5000/api/event/${eventId}`,
+      const response = await axios.patch(
+        `http://localhost:5000/api/event/${eventId}/status`,
         { isPublic: !currentStatus },
         { headers: { Authorization: `Bearer ${token}` } }
       );
@@ -54,10 +56,8 @@ const EventList = () => {
             : event
         )
       );
-      alert("Status updated successfully!");
     } catch (error) {
       console.error("Error updating event status:", error);
-      alert(error.response?.data?.message || "Unable to update event status.");
     }
   };
 
@@ -69,192 +69,231 @@ const EventList = () => {
     navigate(`/events/${eventId}`);
   };
 
-  return (
-    <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-purple-50 to-pink-50 py-12 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-5xl mx-auto">
-        {/* Header */}
-        <h2 className="text-4xl font-extrabold text-indigo-700 mb-10 text-center animate-fade-in">
-          Event List
-        </h2>
+  const containerVariants = {
+    hidden: { opacity: 0 },
+    visible: {
+      opacity: 1,
+      transition: {
+        staggerChildren: 0.15
+      }
+    }
+  };
 
-        {/* Event List Container */}
-        <div className="bg-white rounded-2xl shadow-xl p-8">
-          {loading ? (
-            <div className="flex justify-center py-16">
-              <div className="animate-spin inline-block w-12 h-12 border-4 border-indigo-600 border-t-transparent rounded-full"></div>
-              <p className="ml-4 text-lg text-gray-600">Loading events...</p>
-            </div>
-          ) : error ? (
-            <div className="text-center py-16">
-              <svg
-                className="w-16 h-16 mx-auto text-red-500"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
+  const itemVariants = {
+    hidden: { opacity: 0, y: 20 },
+    visible: { 
+      opacity: 1, 
+      y: 0,
+      transition: {
+        type: "spring",
+        stiffness: 100,
+        damping: 12
+      }
+    }
+  };
+
+  const formatDate = (date) => {
+    return new Date(date).toLocaleDateString('en-US', {
+      weekday: 'long',
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric',
+    });
+  };
+
+  const formatTime = (date) => {
+    return new Date(date).toLocaleTimeString('en-US', {
+      hour: '2-digit',
+      minute: '2-digit',
+    });
+  };
+
+  return (
+    <div className="min-h-screen bg-[#f8fafc] dark:bg-gray-900 py-12 px-4 sm:px-6 lg:px-8">
+      <div className="max-w-7xl mx-auto">
+        <motion.div
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6 }}
+          className="text-center mb-16"
+        >
+          <h2 className="text-6xl font-black tracking-tight bg-gradient-to-r from-violet-600 via-indigo-600 to-purple-600 bg-clip-text text-transparent mb-4">
+            Upcoming Events
+          </h2>
+          <p className="text-xl text-gray-600 dark:text-gray-300">
+            Discover and join amazing events happening around you
+          </p>
+        </motion.div>
+
+        {loading ? (
+          <div className="flex flex-col items-center justify-center py-32">
+            <motion.div
+              animate={{ 
+                rotate: 360,
+                scale: [1, 1.1, 1],
+                transition: { 
+                  rotate: { duration: 1.5, repeat: Infinity, ease: "linear" },
+                  scale: { duration: 1, repeat: Infinity }
+                }
+              }}
+              className="w-20 h-20 border-4 border-purple-500 border-t-transparent rounded-full"
+            />
+            <motion.p
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 0.5 }}
+              className="mt-8 text-xl font-medium text-gray-600 dark:text-gray-300"
+            >
+              Discovering amazing events...
+            </motion.p>
+          </div>
+        ) : error ? (
+          <motion.div
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="max-w-2xl mx-auto text-center py-16 px-4 bg-white dark:bg-gray-800 rounded-3xl shadow-xl"
+          >
+            <div className="text-red-500 mb-6">
+              <motion.div
+                animate={{ 
+                  scale: [1, 1.1, 1],
+                  transition: { duration: 2, repeat: Infinity }
+                }}
               >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth="2"
-                  d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-                />
-              </svg>
-              <p className="mt-4 text-lg text-red-600 font-medium">{error}</p>
+                <svg className="w-20 h-20 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" 
+                        d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                </svg>
+              </motion.div>
             </div>
-          ) : events.length > 0 ? (
-            <ul className="space-y-6">
-              {events.map((event) => (
-                <li
-                  key={event._id}
-                  className="flex flex-col md:flex-row justify-between items-start md:items-center p-6 bg-gradient-to-r from-gray-50 to-gray-100 rounded-xl shadow-md transform hover:scale-102 transition-all duration-300"
-                >
-                  <div className="flex items-start gap-4 mb-4 md:mb-0">
-                    <div className="w-12 h-12 bg-indigo-100 rounded-full flex items-center justify-center">
-                      <svg
-                        className="w-6 h-6 text-indigo-600"
-                        fill="none"
-                        stroke="currentColor"
-                        viewBox="0 0 24 24"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth="2"
-                          d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
-                        />
-                      </svg>
-                    </div>
-                    <div>
-                      <h3 className="text-xl font-semibold text-gray-800">
-                        {event.name}
-                      </h3>
-                      <p className="text-gray-600 flex items-center mt-1">
-                        <svg
-                          className="w-5 h-5 mr-2 text-gray-500"
-                          fill="none"
-                          stroke="currentColor"
-                          viewBox="0 0 24 24"
-                        >
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth="2"
-                            d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
-                          />
-                        </svg>
-                        {new Date(event.date).toLocaleDateString()}
-                      </p>
-                      <p className="text-gray-600 flex items-center mt-1">
-                        <svg
-                          className="w-5 h-5 mr-2 text-gray-500"
-                          fill="none"
-                          stroke="currentColor"
-                          viewBox="0 0 24 24"
-                        >
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth="2"
-                            d="M17.657 16.657L13.414 12.414a2 2 0 10-2.828-2.828L6.343 13.657a6 6 0 108.314 8.314z"
-                          />
-                        </svg>
-                        {event.location}
-                      </p>
-                      <p
-                        className={`mt-2 text-sm font-medium px-2 py-1 rounded-full inline-block ${
-                          event.isPublic
-                            ? "bg-green-100 text-green-700"
-                            : "bg-red-100 text-red-700"
-                        }`}
-                      >
-                        {event.isPublic ? "Public" : "Private"}
-                      </p>
+            <h3 className="text-2xl font-bold text-gray-800 dark:text-white mb-4">Unable to Load Events</h3>
+            <p className="text-gray-600 dark:text-gray-300">{error}</p>
+          </motion.div>
+        ) : events.length > 0 ? (
+          <motion.div
+            variants={containerVariants}
+            initial="hidden"
+            animate="visible"
+            className="grid grid-cols-1 gap-8"
+          >
+            {events.map((event) => (
+              <motion.div
+                key={event._id}
+                variants={itemVariants}
+                className="bg-white dark:bg-gray-800 rounded-3xl shadow-lg overflow-hidden transform-gpu hover:shadow-2xl transition-all duration-300"
+              >
+                <div className="relative">
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent z-10" />
+                  <img
+                    src={event.image 
+                      ? `http://localhost:5000${event.image}`
+                      : "https://images.unsplash.com/photo-1492684223066-81342ee5ff30?ixlib=rb-1.2.1&auto=format&fit=crop&w=1350&q=80"
+                    }
+                    alt={event.name}
+                    className="w-full object-cover"
+                  />
+                  <div className="absolute top-6 right-6 z-20">
+                    <motion.div
+                      initial={{ opacity: 0, scale: 0.8 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      className={`
+                        flex items-center gap-2 px-4 py-2 rounded-full
+                        ${event.isPublic 
+                          ? 'bg-emerald-500 text-white' 
+                          : 'bg-rose-500 text-white'
+                        }
+                        shadow-lg
+                      `}
+                    >
+                      {event.isPublic ? <Globe className="w-4 h-4" /> : <Lock className="w-4 h-4" />}
+                      <span className="font-medium">{event.isPublic ? 'Public' : 'Private'}</span>
+                    </motion.div>
+                  </div>
+                  <div className="absolute bottom-0 left-0 right-0 p-8 z-20">
+                    <h3 className="text-4xl font-bold text-white mb-4">{event.name}</h3>
+                    <div className="flex flex-wrap gap-6 text-white/90">
+                      <div className="flex items-center gap-2">
+                        <Calendar className="w-5 h-5" />
+                        <span>{formatDate(event.date)}</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Clock className="w-5 h-5" />
+                        <span>{formatTime(event.date)}</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <MapPin className="w-5 h-5" />
+                        <span>{event.location}</span>
+                      </div>
                     </div>
                   </div>
-                  <div className="flex gap-3 flex-col md:flex-row">
-                    {userRole === "admin" || event.createdBy?.toString() === userId ? (
+                </div>
+
+                <div className="p-8">
+                  <div className="flex flex-wrap gap-4 mb-8">
+                    <div className="flex items-center gap-2 px-4 py-2 bg-violet-50 dark:bg-violet-900/30 text-violet-700 dark:text-violet-300 rounded-full">
+                      <Tag className="w-4 h-4" />
+                      <span className="font-medium">{event.category?.name || "No Category"}</span>
+                    </div>
+                    <div className="flex items-center gap-2 px-4 py-2 bg-indigo-50 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300 rounded-full">
+                      <Users className="w-4 h-4" />
+                      <span className="font-medium">{event.capacity || "Unlimited"} attendees</span>
+                    </div>
+                  </div>
+
+                  <p className="text-gray-600 dark:text-gray-300 text-lg leading-relaxed mb-8">
+                    {event.description || "No description available."}
+                  </p>
+
+                  <div className="flex flex-wrap gap-4 justify-end">
+                    {(userRole === "admin" || event.createdBy?.toString() === userId) && (
                       <>
-                        <button
-                          onClick={() =>
-                            handleNavigateToInvoiceDetails(event._id)
-                          }
-                          className="bg-green-600 text-white px-5 py-2 rounded-lg hover:bg-green-700 transform hover:scale-105 transition-all duration-200"
-                          aria-label="Create invoice"
+                        <motion.button
+                          whileHover={{ scale: 1.02 }}
+                          whileTap={{ scale: 0.98 }}
+                          onClick={() => handleNavigateToInvoiceDetails(event._id)}
+                          className="px-6 py-3 bg-gradient-to-r from-emerald-500 to-teal-500 text-white rounded-xl font-medium shadow-lg hover:shadow-xl transition-all duration-200"
                         >
                           Create Invoice
-                        </button>
-                        <button
-                          onClick={() => handleViewDetails(event._id)}
-                          className="bg-yellow-500 text-white px-5 py-2 rounded-lg hover:bg-yellow-600 transform hover:scale-105 transition-all duration-200"
-                          aria-label="View event details"
+                        </motion.button>
+                        <motion.button
+                          whileHover={{ scale: 1.02 }}
+                          whileTap={{ scale: 0.98 }}
+                          onClick={() => handleUpdateStatus(event._id, event.isPublic)}
+                          className="px-6 py-3 bg-gradient-to-r from-violet-500 to-purple-500 text-white rounded-xl font-medium shadow-lg hover:shadow-xl transition-all duration-200"
                         >
-                          View Details
-                        </button>
-                        {(userRole === "admin" ||
-                          event.createdBy?.toString() === userId) && (
-                          <button
-                            onClick={() =>
-                              handleUpdateStatus(event._id, event.isPublic)
-                            }
-                            className="bg-indigo-600 text-white px-5 py-2 rounded-lg hover:bg-indigo-700 transform hover:scale-105 transition-all duration-200"
-                            aria-label={
-                              event.isPublic ? "Make private" : "Make public"
-                            }
-                          >
-                            {event.isPublic ? "Make Private" : "Make Public"}
-                          </button>
-                        )}
-                      </>
-                    ) : (
-                      <>
-                        <button
-                          onClick={() => handleViewDetails(event._id)}
-                          className="bg-yellow-500 text-white px-5 py-2 rounded-lg hover:bg-yellow-600 transform hover:scale-105 transition-all duration-200"
-                          aria-label="View event details"
-                        >
-                          View Details
-                        </button>
+                          {event.isPublic ? "Make Private" : "Make Public"}
+                        </motion.button>
                       </>
                     )}
+                    <motion.button
+                      whileHover={{ scale: 1.02 }}
+                      whileTap={{ scale: 0.98 }}
+                      onClick={() => handleViewDetails(event._id)}
+                      className="px-6 py-3 bg-gradient-to-r from-indigo-500 to-blue-500 text-white rounded-xl font-medium shadow-lg hover:shadow-xl transition-all duration-200"
+                    >
+                      View Details
+                    </motion.button>
                   </div>
-                </li>
-              ))}
-            </ul>
-          ) : (
-            <div className="text-center py-16">
-              <svg
-                className="w-16 h-16 mx-auto text-gray-400"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth="2"
-                  d="M9 13h6m-3-3v6m5 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
-                />
-              </svg>
-              <p className="mt-4 text-lg text-gray-500 italic">
-                No events found.
-              </p>
+                </div>
+              </motion.div>
+            ))}
+          </motion.div>
+        ) : (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="max-w-2xl mx-auto text-center bg-white dark:bg-gray-800 rounded-3xl shadow-xl p-16"
+          >
+            <div className="w-32 h-32 bg-violet-50 dark:bg-violet-900/30 rounded-full flex items-center justify-center mx-auto mb-8">
+              <Calendar className="w-16 h-16 text-violet-500 dark:text-violet-400" />
             </div>
-          )}
-        </div>
+            <h3 className="text-3xl font-bold text-gray-800 dark:text-white mb-4">No Events Found</h3>
+            <p className="text-xl text-gray-600 dark:text-gray-300">
+              Start creating amazing events to see them listed here!
+            </p>
+          </motion.div>
+        )}
       </div>
-
-      {/* Custom Animation Styles */}
-      <style>
-        {`
-          @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(10px); }
-            to { opacity: 1; transform: translateY(0); }
-          }
-          .animate-fade-in {
-            animation: fadeIn 0.5s ease-out;
-          }
-        `}
-      </style>
     </div>
   );
 };

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import axios from "axios";
 import { useParams, useNavigate } from "react-router-dom";
+import { Calendar, MapPin, Info, Tag, ChevronLeft, Plus, Edit, Trash2, Package } from 'lucide-react';
 
 const EventDetails = () => {
   const { eventId } = useParams();
@@ -40,7 +41,8 @@ const EventDetails = () => {
         }
       );
       setEvent(response.data);
-      setSelectedCategory(response.data.category); // Set the selected category to the event's category
+      setSelectedCategory(response.data.category._id);
+      console.log(response.data.category._id);
     } catch (error) {
       console.error("Error fetching event details:", error);
       alert("Unable to load event details!");
@@ -140,8 +142,8 @@ const EventDetails = () => {
     }
     try {
       const token = localStorage.getItem("token");
-      await axios.put(
-        `http://localhost:5000/api/event/${eventId}`,
+      await axios.patch(
+        `http://localhost:5000/api/event/${eventId}/category`,
         { category: selectedCategory },
         { headers: { Authorization: `Bearer ${token}` } }
       );
@@ -154,113 +156,97 @@ const EventDetails = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-purple-50 to-pink-50 py-12 px-4 sm:px-6 lg:px-8">
+    <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-purple-50 to-pink-50 py-8 px-4 sm:px-6 lg:px-8">
       <div className="max-w-4xl mx-auto">
-        {/* Back Button */}
         <button
-          onClick={() => navigate("/eventlist")}
+          onClick={() => navigate(-1)}
           className="mb-8 flex items-center text-indigo-600 hover:text-indigo-800 transition-all duration-300 group"
         >
-          <svg
-            className="w-6 h-6 mr-2 transform group-hover:-translate-x-1 transition-transform duration-300"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth="2"
-              d="M15 19l-7-7 7-7"
-            />
-          </svg>
+          <ChevronLeft className="w-5 h-5 mr-2 group-hover:-translate-x-1 transition-transform duration-300" />
           <span className="text-lg font-medium">Back to Event List</span>
         </button>
 
         {event ? (
           <>
-            {/* Event Details Card */}
-            <div className="bg-white rounded-2xl shadow-xl p-8 mb-8 transform hover:scale-105 transition-all duration-300">
-              <h2 className="text-4xl font-extrabold text-indigo-700 mb-6 animate-fade-in">
-                {event.name}
-              </h2>
-              <div className="space-y-4 text-gray-700">
-                <p className="flex items-center">
-                  <svg
-                    className="w-5 h-5 mr-2 text-indigo-500"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth="2"
-                      d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
-                    />
-                  </svg>
-                  <strong>Date:</strong>{" "}
-                  <span className="ml-2">
-                    {new Date(event.date).toLocaleDateString()}
-                  </span>
-                </p>
-                <p className="flex items-center">
-                  <svg
-                    className="w-5 h-5 mr-2 text-indigo-500"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth="2"
-                      d="M17.657 16.657L13.414 12.414a2 2 0 10-2.828-2.828L6.343 13.657a6 6 0 108.314 8.314z"
-                    />
-                  </svg>
-                  <strong>Location:</strong>{" "}
-                  <span className="ml-2">{event.location}</span>
-                </p>
+            <div className="bg-white rounded-2xl shadow-xl overflow-hidden mb-8">
+              <div className="bg-gradient-to-r from-indigo-600 to-purple-600 px-8 py-6 text-white">
+                <h2 className="text-3xl font-bold mb-4">{event.name}</h2>
+                <div className="flex flex-wrap gap-6">
+                  <div className="flex items-center bg-white/10 rounded-lg px-4 py-2 backdrop-blur-sm">
+                    <Calendar className="w-5 h-5 mr-3 text-indigo-200" />
+                    <span className="font-medium">
+                      {new Date(event.date).toLocaleDateString('en-US', {
+                        weekday: 'long',
+                        year: 'numeric',
+                        month: 'long',
+                        day: 'numeric'
+                      })}
+                    </span>
+                  </div>
+                </div>
               </div>
-              <div className="mt-6 flex flex-col sm:flex-row items-start sm:items-center gap-4">
-                <label
-                  htmlFor="category"
-                  className="text-sm font-medium text-gray-700"
-                >
-                  Category:
-                </label>
-                <select
-                  id="category"
-                  value={selectedCategory || ""}
-                  onChange={(e) => setSelectedCategory(e.target.value)}
-                  className="w-full sm:w-64 p-3 border border-gray-200 rounded-lg bg-gray-50 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all duration-200"
-                >
-                  <option value="" disabled>
-                    Select Category
-                  </option>
-                  {categories.map((category) => (
-                    <option key={category._id} value={category._id}>
-                      {category.name}
-                    </option>
-                  ))}
-                </select>
-                {canEditEvent && (
-                  <button
-                    onClick={handleUpdateCategory}
-                    className="bg-indigo-600 text-white px-5 py-2 rounded-lg hover:bg-indigo-700 transform hover:scale-105 transition-all duration-200"
-                  >
-                    Update
-                  </button>
+
+              <div className="px-8 py-6 space-y-6">
+                {event.image && (
+                  <div className="relative w-full rounded-xl overflow-hidden shadow-lg">
+                    <div className="aspect-w-16 aspect-h-9">
+                      <img
+                        src={`http://localhost:5000${event.image}`}
+                        alt={event.name}
+                        className="w-full h-auto object-contain bg-gray-100"
+                      />
+                    </div>
+                  </div>
                 )}
+
+                <div className="flex items-start space-x-4 p-4 bg-gradient-to-r from-indigo-50 to-purple-50 rounded-xl border border-indigo-100">
+                  <MapPin className="w-6 h-6 text-indigo-600 flex-shrink-0 mt-1" />
+                  <div>
+                    <h3 className="text-lg font-semibold text-indigo-900 mb-1">Location</h3>
+                    <p className="text-indigo-700 leading-relaxed">{event.location}</p>
+                  </div>
+                </div>
+
+                <div className="flex items-start space-x-4 p-4 bg-gradient-to-r from-purple-50 to-pink-50 rounded-xl border border-purple-100">
+                  <Info className="w-6 h-6 text-purple-600 flex-shrink-0 mt-1" />
+                  <div>
+                    <h3 className="text-lg font-semibold text-purple-900 mb-1">Description</h3>
+                    <p className="text-purple-700 leading-relaxed">{event.description}</p>
+                  </div>
+                </div>
+
+                <div className="flex items-center space-x-4 p-4 bg-gray-50 rounded-xl border border-gray-200">
+                  <Tag className="w-5 h-5 text-gray-600" />
+                  <select
+                    value={selectedCategory || ""}
+                    onChange={(e) => setSelectedCategory(e.target.value)}
+                    className="flex-1 p-2 border border-gray-200 rounded-lg bg-white focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all duration-200"
+                  >
+                    <option value="" disabled>Select Category</option>
+                    {categories.map((category) => (
+                      <option key={category._id} value={category._id}>
+                        {category.name}
+                      </option>
+                    ))}
+                  </select>
+                  {canEditEvent && (
+                    <button
+                      onClick={handleUpdateCategory}
+                      className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-all duration-200"
+                    >
+                      Update
+                    </button>
+                  )}
+                </div>
               </div>
             </div>
 
-            {/* Add Service Section */}
             {canEditEvent && (
-              <div className="bg-white rounded-2xl shadow-xl p-8 mb-8 transform hover:scale-105 transition-all duration-300">
-                <h3 className="text-2xl font-semibold text-gray-800 mb-6">
-                  Add a Service
-                </h3>
+              <div className="bg-white rounded-2xl shadow-xl p-8 mb-8">
+                <div className="flex items-center mb-6">
+                  <Plus className="w-6 h-6 text-indigo-600 mr-2" />
+                  <h3 className="text-2xl font-semibold text-gray-800">Add a Service</h3>
+                </div>
                 <div className="flex flex-col sm:flex-row gap-4">
                   <select
                     value={selectedService}
@@ -270,16 +256,14 @@ const EventDetails = () => {
                     <option value="">Select a Service</option>
                     {services.map((service) => (
                       <option key={service._id} value={service._id}>
-                        {service.name} - {service.price.toLocaleString()} VND
+                        {service.name} - {service.description} - {service.price.toLocaleString()} VND
                       </option>
                     ))}
                   </select>
                   <input
                     type="number"
                     value={quantity}
-                    onChange={(e) =>
-                      setQuantity(Math.max(1, parseInt(e.target.value)))
-                    }
+                    onChange={(e) => setQuantity(Math.max(1, parseInt(e.target.value)))}
                     min="1"
                     className="w-24 p-3 border border-gray-200 rounded-lg bg-gray-50 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all duration-200"
                     placeholder="Qty"
@@ -294,140 +278,87 @@ const EventDetails = () => {
               </div>
             )}
 
-            {/* Service List Section */}
             <div className="bg-white rounded-2xl shadow-xl p-8">
-              <h3 className="text-2xl font-semibold text-gray-800 mb-6">
-                Service List
-              </h3>
+              <div className="flex items-center mb-6">
+                <Package className="w-6 h-6 text-indigo-600 mr-2" />
+                <h3 className="text-2xl font-semibold text-gray-800">Service List</h3>
+              </div>
               {event.services.length > 0 ? (
-                <ul className="space-y-6">
+                <ul className="space-y-4">
                   {event.services.map((s) => (
                     <li
                       key={s._id}
-                      className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 p-6 bg-gradient-to-r from-gray-50 to-gray-100 rounded-xl shadow-md transform hover:scale-102 transition-all duration-200"
+                      className="p-4 bg-gradient-to-r from-gray-50 to-gray-100 rounded-xl border border-gray-200 hover:shadow-md transition-all duration-200"
                     >
-                      <div className="flex items-center gap-4">
-                        <div className="w-10 h-10 bg-indigo-100 rounded-full flex items-center justify-center">
-                          <svg
-                            className="w-5 h-5 text-indigo-600"
-                            fill="none"
-                            stroke="currentColor"
-                            viewBox="0 0 24 24"
-                          >
-                            <path
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              strokeWidth="2"
-                              d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-                            />
-                          </svg>
+                      <div className="flex justify-between items-center">
+                        <div className="space-y-1">
+                          <h4 className="text-lg font-semibold text-gray-900">{s.service.name}</h4>
+                          <p className="text-gray-600">{s.service.description}</p>
+                          <p className="text-sm text-gray-500">Quantity: {s.quantity}</p>
                         </div>
-                        <div>
-                          <p className="text-lg font-medium text-gray-800">
-                            {s.service.name}
-                          </p>
-                          <p className="text-sm text-gray-600">
-                            Quantity: {s.quantity}
-                          </p>
-                        </div>
+                        {canEditEvent && (
+                          <div className="flex gap-2">
+                            {isEditing === s.service._id ? (
+                              <>
+                                <input
+                                  type="number"
+                                  value={editingQuantity}
+                                  onChange={(e) => setEditingQuantity(Math.max(1, parseInt(e.target.value)))}
+                                  className="w-20 p-2 border border-gray-200 rounded-lg"
+                                />
+                                <button
+                                  onClick={handleEditService}
+                                  className="px-3 py-1 bg-green-600 text-white rounded-lg hover:bg-green-700"
+                                >
+                                  Save
+                                </button>
+                                <button
+                                  onClick={() => setIsEditing(null)}
+                                  className="px-3 py-1 bg-gray-500 text-white rounded-lg hover:bg-gray-600"
+                                >
+                                  Cancel
+                                </button>
+                              </>
+                            ) : (
+                              <>
+                                <button
+                                  onClick={() => {
+                                    setIsEditing(s.service._id);
+                                    setEditingQuantity(s.quantity);
+                                  }}
+                                  className="p-2 text-yellow-600 hover:bg-yellow-50 rounded-lg transition-colors duration-200"
+                                >
+                                  <Edit className="w-5 h-5" />
+                                </button>
+                                <button
+                                  onClick={() => handleDeleteService(s.service._id)}
+                                  className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors duration-200"
+                                >
+                                  <Trash2 className="w-5 h-5" />
+                                </button>
+                              </>
+                            )}
+                          </div>
+                        )}
                       </div>
-                      {canEditEvent && (
-                        <div className="flex gap-3">
-                          {isEditing === s.service._id ? (
-                            <>
-                              <input
-                                type="number"
-                                value={editingQuantity}
-                                onChange={(e) =>
-                                  setEditingQuantity(
-                                    Math.max(1, parseInt(e.target.value))
-                                  )
-                                }
-                                className="w-20 p-2 border border-gray-200 rounded-lg bg-gray-50 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all duration-200"
-                              />
-                              <button
-                                onClick={handleEditService}
-                                className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transform hover:scale-105 transition-all duration-200"
-                              >
-                                Save
-                              </button>
-                              <button
-                                onClick={() => setIsEditing(null)}
-                                className="bg-gray-500 text-white px-4 py-2 rounded-lg hover:bg-gray-600 transform hover:scale-105 transition-all duration-200"
-                              >
-                                Cancel
-                              </button>
-                            </>
-                          ) : (
-                            <>
-                              <button
-                                onClick={() => {
-                                  setIsEditing(s.service._id);
-                                  setEditingQuantity(s.quantity);
-                                }}
-                                className="bg-yellow-500 text-white px-4 py-2 rounded-lg hover:bg-yellow-600 transform hover:scale-105 transition-all duration-200"
-                              >
-                                Edit
-                              </button>
-                              <button
-                                onClick={() =>
-                                  handleDeleteService(s.service._id)
-                                }
-                                className="bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transform hover:scale-105 transition-all duration-200"
-                              >
-                                Delete
-                              </button>
-                            </>
-                          )}
-                        </div>
-                      )}
                     </li>
                   ))}
                 </ul>
               ) : (
-                <div className="text-center py-12">
-                  <svg
-                    className="w-16 h-16 mx-auto text-gray-400"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth="2"
-                      d="M9 13h6m-3-3v6m5 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
-                    />
-                  </svg>
-                  <p className="mt-4 text-gray-500 text-lg">
-                    No services added yet.
-                  </p>
+                <div className="text-center py-12 bg-gray-50 rounded-xl border border-gray-200">
+                  <Package className="w-16 h-16 mx-auto text-gray-400 mb-4" />
+                  <p className="text-gray-500 text-lg">No services added yet.</p>
                 </div>
               )}
             </div>
           </>
         ) : (
-          <div className="text-center py-16">
-            <div className="animate-spin inline-block w-12 h-12 border-4 border-indigo-600 border-t-transparent rounded-full"></div>
-            <p className="mt-4 text-gray-600 text-lg">
-              Loading event details...
-            </p>
+          <div className="flex flex-col items-center justify-center h-64 space-y-4">
+            <div className="animate-spin rounded-full h-12 w-12 border-t-4 border-b-4 border-indigo-600"></div>
+            <p className="text-gray-500 font-medium">Loading event details...</p>
           </div>
         )}
       </div>
-
-      {/* Custom Animation Styles */}
-      <style>
-        {`
-          @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(10px); }
-            to { opacity: 1; transform: translateY(0); }
-          }
-          .animate-fade-in {
-            animation: fadeIn 0.5s ease-out;
-          }
-        `}
-      </style>
     </div>
   );
 };

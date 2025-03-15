@@ -14,10 +14,17 @@ import serviceRoutes from './routes/serviceRoutes.js';
 import invoiceRoutes from './routes/invoiceRoutes.js';
 import categoryRoutes from './routes/categoryRoutes.js'; 
 import paymentRoutes from './routes/paymentRoutes.js';
+import path from 'path';
+import { fileURLToPath } from 'url';
+import { dirname } from 'path';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
 
 // Khởi động server
 const PORT = process.env.PORT || 5000;
 app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
 app.use(cors());
 app.use(session({ 
     secret: 'your_secret_key', 
@@ -36,6 +43,7 @@ app.use("/api/services", serviceRoutes);
 app.use('/api/invoices', invoiceRoutes);
 app.use('/api/categories', categoryRoutes);
 app.use('/api/payments', paymentRoutes);
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 app.listen(PORT, async () => {
     await connectDB(); // Kết nối với MongoDB

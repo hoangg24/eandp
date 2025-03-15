@@ -12,6 +12,7 @@ const UserManagement = () => {
   });
   const [isEditing, setIsEditing] = useState(false);
   const [editingUserId, setEditingUserId] = useState(null);
+  const [showForm, setShowForm] = useState(false); // New state variable
 
   // Fetch users
   const fetchUsers = async () => {
@@ -104,6 +105,7 @@ const UserManagement = () => {
     setFormData({ username: user.username, email: user.email, role: user.role });
     setIsEditing(true);
     setEditingUserId(user._id);
+    setShowForm(true); // Show the form when editing
   };
 
   // Reset form
@@ -111,6 +113,7 @@ const UserManagement = () => {
     setFormData({ username: "", email: "", role: "user" });
     setIsEditing(false);
     setEditingUserId(null);
+    setShowForm(false); // Hide the form after resetting
   };
 
   return (
@@ -119,100 +122,102 @@ const UserManagement = () => {
         User Management
       </h1>
 
-      {/* Form */}
-      <form
-        onSubmit={handleSubmitForm}
-        className="bg-white shadow-lg rounded-xl p-6 mb-8 transition-all duration-300 hover:shadow-xl"
-      >
-        <h2 className="text-xl font-semibold text-gray-700 mb-6">
-          {isEditing ? "Update User" : "Add User"}
-        </h2>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Username
-            </label>
-            <input
-              type="text"
-              value={formData.username}
-              onChange={(e) =>
-                setFormData({ ...formData, username: e.target.value })
-              }
-              className="w-full p-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none transition-all"
-              required
-              placeholder="Enter username"
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Email
-            </label>
-            <input
-              type="email"
-              value={formData.email}
-              onChange={(e) =>
-                setFormData({ ...formData, email: e.target.value })
-              }
-              className="w-full p-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none transition-all"
-              required
-              placeholder="Enter email"
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Role
-            </label>
-            <select
-              value={formData.role}
-              onChange={(e) =>
-                setFormData({ ...formData, role: e.target.value })
-              }
-              className="w-full p-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none transition-all"
-            >
-              <option value="user">User</option>
-              <option value="admin">Admin</option>
-            </select>
-          </div>
-        </div>
-        <div className="flex gap-4 mt-6">
-          <button
-            type="submit"
-            disabled={loading}
-            className="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition-all disabled:bg-blue-400 flex items-center"
-          >
-            {loading ? (
-              <svg
-                className="animate-spin h-5 w-5 mr-2"
-                viewBox="0 0 24 24"
+      {/* Conditionally render the form */}
+      {showForm && (
+        <form
+          onSubmit={handleSubmitForm}
+          className="bg-white shadow-lg rounded-xl p-6 mb-8 transition-all duration-300 hover:shadow-xl"
+        >
+          <h2 className="text-xl font-semibold text-gray-700 mb-6">
+            {isEditing ? "Update User" : "Add User"}
+          </h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Username
+              </label>
+              <input
+                type="text"
+                value={formData.username}
+                onChange={(e) =>
+                  setFormData({ ...formData, username: e.target.value })
+                }
+                className="w-full p-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none transition-all"
+                required
+                placeholder="Enter username"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Email
+              </label>
+              <input
+                type="email"
+                value={formData.email}
+                onChange={(e) =>
+                  setFormData({ ...formData, email: e.target.value })
+                }
+                className="w-full p-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none transition-all"
+                required
+                placeholder="Enter email"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Role
+              </label>
+              <select
+                value={formData.role}
+                onChange={(e) =>
+                  setFormData({ ...formData, role: e.target.value })
+                }
+                className="w-full p-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none transition-all"
               >
-                <circle
-                  className="opacity-25"
-                  cx="12"
-                  cy="12"
-                  r="10"
-                  stroke="currentColor"
-                  strokeWidth="4"
-                />
-                <path
-                  className="opacity-75"
-                  fill="currentColor"
-                  d="M4 12a8 8 0 018-8v8h8a8 8 0 01-16 0z"
-                />
-              </svg>
-            ) : null}
-            {isEditing ? "Update" : "Add"}
-          </button>
-          {isEditing && (
+                <option value="user">User</option>
+                <option value="admin">Admin</option>
+              </select>
+            </div>
+          </div>
+          <div className="flex gap-4 mt-6">
             <button
-              type="button"
-              onClick={resetForm}
-              className="bg-gray-500 text-white px-6 py-2 rounded-lg hover:bg-gray-600 transition-all"
+              type="submit"
+              disabled={loading}
+              className="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition-all disabled:bg-blue-400 flex items-center"
             >
-              Cancel
+              {loading ? (
+                <svg
+                  className="animate-spin h-5 w-5 mr-2"
+                  viewBox="0 0 24 24"
+                >
+                  <circle
+                    className="opacity-25"
+                    cx="12"
+                    cy="12"
+                    r="10"
+                    stroke="currentColor"
+                    strokeWidth="4"
+                  />
+                  <path
+                    className="opacity-75"
+                    fill="currentColor"
+                    d="M4 12a8 8 0 018-8v8h8a8 8 0 01-16 0z"
+                  />
+                </svg>
+              ) : null}
+              {isEditing ? "Update" : "Add"}
             </button>
-          )}
-        </div>
-      </form>
+            {isEditing && (
+              <button
+                type="button"
+                onClick={resetForm}
+                className="bg-gray-500 text-white px-6 py-2 rounded-lg hover:bg-gray-600 transition-all"
+              >
+                Cancel
+              </button>
+            )}
+          </div>
+        </form>
+      )}
 
       {/* User List */}
       <div className="bg-white shadow-lg rounded-xl p-6">

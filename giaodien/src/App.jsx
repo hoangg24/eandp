@@ -3,6 +3,7 @@ import Layout from "./components/Layout.jsx";
 import Register from "./pages/Register.jsx";
 import Login from "./pages/Login.jsx";
 import Home from "./pages/Home.jsx";
+import AboutUs from "./pages/AboutUs.jsx"; // Import the About Us page
 import AdminLayout from "./components/AdminLayout.jsx"; // Import AdminLayout
 import AdminDashboard from "./pages/AdminDashboard.jsx";
 import UserManagement from "./components/UserManagement.jsx";
@@ -21,6 +22,7 @@ import PaymentStatus from './components/PaymentStatus.jsx';
 import PaymentResult from './components/PaymentResult.jsx';
 import ResetPasswordRequest from "./pages/ResetPasswordRequest.jsx";
 import ResetPassword from "./pages/ResetPassword.jsx";
+import ContactUs from "./pages/ContactUs.jsx";
 
 const LoginSuccess = () => {
   const location = useLocation();
@@ -49,6 +51,8 @@ const App = () => {
         <Route index element={<Home />} />
         <Route path="register" element={<Register />} />
         <Route path="login" element={<Login />} />
+        <Route path="about" element={<AboutUs />} />
+        <Route path="contact" element={<ContactUs/>}></Route>
         <Route path="events" element={<EventManagement />} />
         <Route path="services" element={<ServiceManagement />} />
         <Route path="events/:eventId/invoices" element={<Invoice />} />
@@ -71,7 +75,7 @@ const App = () => {
           <AdminLayout />
         </ProtectedRoute>
       }>
-        {/* <Route index element={<AdminDashboard />} /> */}
+        <Route index element={<AdminDashboard />} />
         <Route path="users" element={<UserManagement />} />
         <Route path="events" element={<EventManagement />} />
         <Route path="services" element={<ServiceManagement />} />
@@ -86,4 +90,3 @@ const App = () => {
 };
 
 export default App;
-

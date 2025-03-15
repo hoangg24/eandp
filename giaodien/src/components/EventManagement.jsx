@@ -1,29 +1,30 @@
 import React, { useState, useEffect } from "react";
+import { getEvents, deleteEvent } from "../services/eventService";
+import { useNavigate } from "react-router-dom";
 import {
-  getEvents,
-  createEvent,
-  deleteEvent,
-  updateEvent,
-} from "../services/eventService";
-import { getCategories } from "../services/categoryService";
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  Legend,
+  ResponsiveContainer,
+} from "recharts";
 
 const EventManagement = () => {
   const [events, setEvents] = useState([]);
-  const [categories, setCategories] = useState([]);
-  const [eventData, setEventData] = useState({
-    name: "",
-    date: "",
-    category: "",
-    location: "",
-  });
-  const [editingEventId, setEditingEventId] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  const navigate = useNavigate();
 
   useEffect(() => {
     fetchEvents();
-    fetchCategories();
   }, []);
+
+  const handleViewDetails = (eventId) => {
+    navigate(`/events/${eventId}`);
+  };
 
   const fetchEvents = async () => {
     setLoading(true);
@@ -37,58 +38,6 @@ const EventManagement = () => {
     } finally {
       setLoading(false);
     }
-  };
-
-  const fetchCategories = async () => {
-    try {
-      const data = await getCategories();
-      setCategories(data);
-    } catch (error) {
-      console.error("Error fetching categories:", error);
-      setError("Unable to load category list!");
-    }
-  };
-
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    setLoading(true);
-    setError(null);
-    try {
-      if (editingEventId) {
-        await updateEvent(editingEventId, {
-          ...eventData,
-          services: [],
-        });
-        alert("Event updated successfully!");
-      } else {
-        await createEvent({
-          ...eventData,
-          services: [],
-        });
-        alert("Event added successfully!");
-      }
-      resetForm();
-      fetchEvents();
-    } catch (error) {
-      console.error("Error details:", error.response?.data || error.message);
-      alert(
-        `Unable to create/update event: ${
-          error.response?.data?.message || error.message
-        }`
-      );
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleEdit = (event) => {
-    setEventData({
-      name: event.name,
-      date: event.date.split("T")[0], // Format date for input
-      category: event.category._id,
-      location: event.location,
-    });
-    setEditingEventId(event._id);
   };
 
   const handleDelete = async (id) => {
@@ -107,132 +56,25 @@ const EventManagement = () => {
     }
   };
 
-  const resetForm = () => {
-    setEventData({ name: "", date: "", category: "", location: "" });
-    setEditingEventId(null);
-  };
+  // Prepare data for the chart
+  const eventCategories = events.reduce((acc, event) => {
+    const category = event.category?.name || "Uncategorized";
+    if (!acc[category]) {
+      acc[category] = 0;
+    }
+    acc[category]++;
+    return acc;
+  }, {});
+
+  const chartData = Object.keys(eventCategories).map((category) => ({
+    name: category,
+    count: eventCategories[category],
+  }));
 
   return (
     <div className="container mx-auto px-4 py-8">
-      <h2 className="text-3xl font-semibold text-gray-800 mb-8 text-center">
-        {editingEventId ? "Update Event" : "Add Event"}
-      </h2>
-
-      {/* Form */}
-      <form
-        onSubmit={handleSubmit}
-        className="bg-white shadow-lg rounded-xl p-6 mb-10 transition-all duration-300 hover:shadow-xl"
-      >
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Event Name
-            </label>
-            <input
-              type="text"
-              placeholder="Enter event name"
-              value={eventData.name}
-              onChange={(e) =>
-                setEventData({ ...eventData, name: e.target.value })
-              }
-              className="w-full p-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none transition-all"
-              required
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Date
-            </label>
-            <input
-              type="date"
-              value={eventData.date}
-              onChange={(e) =>
-                setEventData({ ...eventData, date: e.target.value })
-              }
-              className="w-full p-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none transition-all"
-              required
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Category
-            </label>
-            <select
-              value={eventData.category}
-              onChange={(e) =>
-                setEventData({ ...eventData, category: e.target.value })
-              }
-              className="w-full p-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none transition-all"
-              required
-            >
-              <option value="">-- Select Category --</option>
-              {categories.map((category) => (
-                <option key={category._id} value={category._id}>
-                  {category.name}
-                </option>
-              ))}
-            </select>
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Location
-            </label>
-            <input
-              type="text"
-              placeholder="Enter location"
-              value={eventData.location}
-              onChange={(e) =>
-                setEventData({ ...eventData, location: e.target.value })
-              }
-              className="w-full p-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none transition-all"
-              required
-            />
-          </div>
-        </div>
-        <div className="flex gap-4 mt-6">
-          <button
-            type="submit"
-            disabled={loading}
-            className="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition-all disabled:bg-blue-400 flex items-center"
-          >
-            {loading ? (
-              <svg
-                className="animate-spin h-5 w-5 mr-2"
-                viewBox="0 0 24 24"
-              >
-                <circle
-                  className="opacity-25"
-                  cx="12"
-                  cy="12"
-                  r="10"
-                  stroke="currentColor"
-                  strokeWidth="4"
-                />
-                <path
-                  className="opacity-75"
-                  fill="currentColor"
-                  d="M4 12a8 8 0 018-8v8h8a8 8 0 01-16 0z"
-                />
-              </svg>
-            ) : null}
-            {editingEventId ? "Update" : "Add"}
-          </button>
-          {editingEventId && (
-            <button
-              type="button"
-              onClick={resetForm}
-              className="bg-gray-500 text-white px-6 py-2 rounded-lg hover:bg-gray-600 transition-all"
-            >
-              Cancel
-            </button>
-          )}
-        </div>
-      </form>
-
       {/* Event List */}
-      <h3 className="text-2xl font-semibold text-gray-700 mb-4">
-        Event List
-      </h3>
+      <h3 className="text-2xl font-semibold text-gray-700 mb-4">Event List</h3>
       <div className="bg-white shadow-lg rounded-xl p-6">
         {loading ? (
           <div className="flex justify-center py-8">
@@ -278,11 +120,11 @@ const EventManagement = () => {
                 </div>
                 <div className="flex gap-3">
                   <button
-                    onClick={() => handleEdit(event)}
-                    className="bg-yellow-500 text-white px-4 py-2 rounded-lg hover:bg-yellow-600 transition-all"
-                    aria-label="Edit event"
+                    onClick={() => handleViewDetails(event._id)}
+                    className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-all"
+                    aria-label="View event details"
                   >
-                    Edit
+                    View Details
                   </button>
                   <button
                     onClick={() => handleDelete(event._id)}
@@ -300,6 +142,23 @@ const EventManagement = () => {
             No events found.
           </p>
         )}
+      </div>
+
+      {/* Event Analysis */}
+      <h3 className="text-2xl font-semibold text-gray-700 mb-4 mt-8">
+        Event Analysis
+      </h3>
+      <div className="bg-white shadow-lg rounded-xl p-6">
+        <ResponsiveContainer width="100%" height={400}>
+          <BarChart data={chartData}>
+            <CartesianGrid strokeDasharray="3 3" />
+            <XAxis dataKey="name" />
+            <YAxis />
+            <Tooltip />
+            <Legend />
+            <Bar dataKey="count" fill="#8884d8" />
+          </BarChart>
+        </ResponsiveContainer>
       </div>
     </div>
   );
