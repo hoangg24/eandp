@@ -340,6 +340,10 @@ const eventController = {
         return res.status(404).json({ message: "Dịch vụ không tồn tại!" });
       }
 
+      if (service.quantity < quantity) {
+        return res.status(400).json({ message: "Không đủ số lượng dịch vụ!" });
+      }
+
       const event = await Event.findById(eventId);
       if (!event) {
         return res.status(404).json({ message: "Sự kiện không tồn tại!" });
@@ -354,6 +358,10 @@ const eventController = {
 
       event.services.push({ service: serviceId, quantity });
       await event.save();
+
+      // Giảm số lượng dịch vụ
+      service.quantity -= quantity;
+      await service.save();
 
       const updatedEvent = await Event.findById(eventId).populate(
         "services.service",

@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
-import { MapPin, Calendar, Tag, Users, Clock, Globe, Lock } from "lucide-react";
+import { MapPin, Calendar, Tag, Users, Clock, Globe, Lock, Search } from "lucide-react";
 
 const EventList = () => {
   const [events, setEvents] = useState([]);
@@ -10,11 +10,19 @@ const EventList = () => {
   const [userId, setUserId] = useState("");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [categories, setCategories] = useState([]);
+  const [searchCriteria, setSearchCriteria] = useState({
+    name: "",
+    date: "",
+    category: "",
+    location: ""
+  });
   const navigate = useNavigate();
 
   useEffect(() => {
     fetchUserInfo();
     fetchEvents();
+    fetchCategories();
   }, []);
 
   const fetchUserInfo = () => {
@@ -40,6 +48,41 @@ const EventList = () => {
       setLoading(false);
     }
   };
+
+  const fetchCategories = async () => {
+    try {
+      const token = localStorage.getItem("token");
+      const response = await axios.get("http://localhost:5000/api/categories", {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      setCategories(
+        response.data.length > 0
+          ? response.data
+          : [{ _id: "default", name: "No Category" }]
+      );
+    } catch (error) {
+      console.error("Error fetching categories:", error);
+      setCategories([{ _id: "default", name: "No Category" }]);
+    }
+  };
+
+  const handleSearchChange = (e) => {
+    const { name, value } = e.target;
+    setSearchCriteria(prev => ({ ...prev, [name]: value }));
+  };
+
+  const filteredEvents = events.filter(event => {
+    const nameMatch = !searchCriteria.name || 
+      event.name?.toLowerCase().includes(searchCriteria.name.toLowerCase());
+    const dateMatch = !searchCriteria.date || 
+      new Date(event.date).toISOString().slice(0,10) === searchCriteria.date;
+    const categoryMatch = !searchCriteria.category || 
+      event.category?.name?.toLowerCase().includes(searchCriteria.category.toLowerCase());
+    const locationMatch = !searchCriteria.location || 
+      event.location?.toLowerCase().includes(searchCriteria.location.toLowerCase());
+    
+    return nameMatch && dateMatch && categoryMatch && locationMatch;
+  });
 
   const handleUpdateStatus = async (eventId, currentStatus) => {
     try {
@@ -125,6 +168,64 @@ const EventList = () => {
           </p>
         </motion.div>
 
+        <motion.div
+          initial={{ opacity: 0, y: -10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5, delay: 0.2 }}
+          className="mb-12 bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6"
+        >
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
+              <input
+                type="text"
+                name="name"
+                value={searchCriteria.name}
+                onChange={handleSearchChange}
+                placeholder="Search by name..."
+                className="w-full pl-10 pr-4 py-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-transparent"
+              />
+            </div>
+            <div className="relative">
+              <Calendar className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
+              <input
+                type="date"
+                name="date"
+                value={searchCriteria.date}
+                onChange={handleSearchChange}
+                className="w-full pl-10 pr-4 py-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-transparent"
+              />
+            </div>
+            <div className="relative">
+              <Tag className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
+              <select
+                name="category"
+                value={searchCriteria.category}
+                onChange={handleSearchChange}
+                className="w-full pl-10 pr-4 py-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-transparent appearance-none"
+              >
+                <option value="">All Categories</option>
+                {categories.map((cat) => (
+                  <option key={cat._id} value={cat.name}>
+                    {cat.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div className="relative">
+              <MapPin className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
+              <input
+                type="text"
+                name="location"
+                value={searchCriteria.location}
+                onChange={handleSearchChange}
+                placeholder="Search by location..."
+                className="w-full pl-10 pr-4 py-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-transparent"
+              />
+            </div>
+          </div>
+        </motion.div>
+
         {loading ? (
           <div className="flex flex-col items-center justify-center py-32">
             <motion.div
@@ -169,14 +270,14 @@ const EventList = () => {
             <h3 className="text-2xl font-bold text-gray-800 dark:text-white mb-4">Unable to Load Events</h3>
             <p className="text-gray-600 dark:text-gray-300">{error}</p>
           </motion.div>
-        ) : events.length > 0 ? (
+        ) : filteredEvents.length > 0 ? (
           <motion.div
             variants={containerVariants}
             initial="hidden"
             animate="visible"
             className="grid grid-cols-1 gap-8"
           >
-            {events.map((event) => (
+            {filteredEvents.map((event) => (
               <motion.div
                 key={event._id}
                 variants={itemVariants}
@@ -285,11 +386,21 @@ const EventList = () => {
             className="max-w-2xl mx-auto text-center bg-white dark:bg-gray-800 rounded-3xl shadow-xl p-16"
           >
             <div className="w-32 h-32 bg-violet-50 dark:bg-violet-900/30 rounded-full flex items-center justify-center mx-auto mb-8">
-              <Calendar className="w-16 h-16 text-violet-500 dark:text-violet-400" />
+              {(searchCriteria.name || searchCriteria.date || searchCriteria.category || searchCriteria.location) ? (
+                <Search className="w-16 h-16 text-violet-500 dark:text-violet-400" />
+              ) : (
+                <Calendar className="w-16 h-16 text-violet-500 dark:text-violet-400" />
+              )}
             </div>
-            <h3 className="text-3xl font-bold text-gray-800 dark:text-white mb-4">No Events Found</h3>
+            <h3 className="text-3xl font-bold text-gray-800 dark:text-white mb-4">
+              {(searchCriteria.name || searchCriteria.date || searchCriteria.category || searchCriteria.location) 
+                ? "No Matching Events" 
+                : "No Events Found"}
+            </h3>
             <p className="text-xl text-gray-600 dark:text-gray-300">
-              Start creating amazing events to see them listed here!
+              {(searchCriteria.name || searchCriteria.date || searchCriteria.category || searchCriteria.location)
+                ? "No events match your search criteria. Try different filters!"
+                : "Start creating amazing events to see them listed here!"}
             </p>
           </motion.div>
         )}
