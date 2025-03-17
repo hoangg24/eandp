@@ -38,9 +38,10 @@ const ServiceManagement = () => {
   const fetchServiceUsage = async () => {
     try {
       const data = await getServiceUsage();
-      const formattedData = Object.keys(data).map(key => ({
+      const formattedData = Object.keys(data).map((key) => ({
         name: key,
-        quantity: data[key],
+        quantity: data[key].quantity,
+        price: data[key].price,
       }));
       setServiceUsage(formattedData);
     } catch (error) {
@@ -312,13 +313,61 @@ const ServiceManagement = () => {
           Service Usage Chart
         </h3>
         <ResponsiveContainer width="100%" height={400}>
-          <BarChart data={serviceUsage}>
+          <BarChart
+            data={serviceUsage}
+            margin={{ top: 20, right: 30, left: 20, bottom: 5 }}
+          >
             <CartesianGrid strokeDasharray="3 3" />
-            <XAxis dataKey="name" />
-            <YAxis />
-            <Tooltip />
+            <XAxis dataKey="name" interval={0} />
+            <YAxis
+              yAxisId="left"
+              orientation="left"
+              stroke="#8884d8"
+              label={{ value: "Quantity", angle: -90, position: "insideLeft" }}
+            />
+            <YAxis
+              yAxisId="right"
+              orientation="right"
+              stroke="#82ca9d"
+              label={{
+                value: "Price (VNĐ)",
+                angle: 90,
+                position: "insideRight",
+              }}
+            />
+            <Tooltip
+              content={({ active, payload, label }) => {
+                if (active && payload && payload.length) {
+                  return (
+                    <div className="bg-white p-3 border rounded shadow">
+                      <p className="font-semibold">{label}</p>
+                      <p style={{ color: "#8884d8" }}>
+                        Quantity: {payload[0].value}
+                      </p>
+                      <p style={{ color: "#82ca9d" }}>
+                        Price: {payload[1].value.toLocaleString()} VNĐ
+                      </p>
+                    </div>
+                  );
+                }
+                return null;
+              }}
+            />
             <Legend />
-            <Bar dataKey="quantity" fill="#8884d8" />
+            <Bar
+              yAxisId="left"
+              dataKey="quantity"
+              fill="#8884d8"
+              name="Quantity"
+              barSize={30}
+            />
+            <Bar
+              yAxisId="right"
+              dataKey="price"
+              fill="#82ca9d"
+              name="Price (VNĐ)"
+              barSize={30}
+            />
           </BarChart>
         </ResponsiveContainer>
       </div>

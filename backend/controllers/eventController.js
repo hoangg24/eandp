@@ -3,87 +3,87 @@ import Service from "../models/service.js";
 import Invoice from "../models/invoiceModel.js";
 import Category from "../models/Category.js";
 import mongoose from "mongoose";
+import fs from "fs/promises";
+import path, { dirname } from "path";
+import { fileURLToPath } from "url";
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
 
 const eventController = {
   // Tạo sự kiện mới
   createEvent: async (req, res) => {
-    upload(req, res, async (err) => {
-      if (err) {
-        return res.status(400).json({ message: err });
+    try {
+      const {
+        name,
+        date,
+        category,
+        location,
+        description,
+        services = [],
+        isPublic,
+      } = req.body;
+      const userId = req.user.id;
+
+      let imagePath = "";
+      if (req.file) {
+        imagePath = `/uploads/${req.file.filename}`;
       }
 
-      try {
-        const {
-          name,
-          date,
-          category,
-          location,
-          description,
-          services = [],
-          isPublic,
-        } = req.body;
-        const userId = req.user.id;
-
-        let imagePath = '';
-        if (req.file) {
-          imagePath = `/uploads/${req.file.filename}`;
-        }
-
-        // Kiểm tra danh mục
-        if (!mongoose.Types.ObjectId.isValid(category)) {
-          return res.status(400).json({ message: "ID danh mục không hợp lệ!" });
-        }
-
-        const existingCategory = await Category.findById(category);
-        if (!existingCategory) {
-          return res.status(404).json({ message: "Danh mục không tồn tại!" });
-        }
-
-        // Kiểm tra danh sách dịch vụ nếu không rỗng
-        let populatedServices = [];
-        if (services.length > 0) {
-          populatedServices = await Promise.all(
-            services.map(async (s) => {
-              if (!mongoose.Types.ObjectId.isValid(s.service)) {
-                throw new Error(`ID dịch vụ không hợp lệ: ${s.service}`);
-              }
-              const serviceData = await Service.findById(s.service);
-              if (!serviceData) {
-                throw new Error(`Dịch vụ với ID ${s.service} không tồn tại.`);
-              }
-              return {
-                service: s.service,
-                quantity: s.quantity,
-                price: serviceData.price,
-              };
-            })
-          );
-        }
-
-        // Tạo sự kiện mới
-        const newEvent = new Event({
-          name,
-          date,
-          category,
-          location,
-          description,
-          image: imagePath,
-          services: populatedServices,
-          isPublic,
-          createdBy: userId,
-        });
-        const savedEvent = await newEvent.save();
-
-        res
-          .status(201)
-          .json({ message: "Tạo sự kiện thành công!", event: savedEvent });
-      } catch (error) {
-        console.error("Lỗi khi tạo sự kiện:", error.message);
-        res
-          .status(500)
-          .json({ message: "Lỗi khi tạo sự kiện!", error: error.message });
+      // Kiểm tra danh mục
+      if (!mongoose.Types.ObjectId.isValid(category)) {
+        return res.status(400).json({ message: "ID danh mục không hợp lệ!" });
       }
-    });
+
+      const existingCategory = await Category.findById(category);
+      if (!existingCategory) {
+        return res.status(404).json({ message: "Danh mục không tồn tại!" });
+      }
+
+      // Kiểm tra danh sách dịch vụ nếu không rỗng
+      let populatedServices = [];
+      if (services.length > 0) {
+        populatedServices = await Promise.all(
+          services.map(async (s) => {
+            if (!mongoose.Types.ObjectId.isValid(s.service)) {
+              throw new Error(`ID dịch vụ không hợp lệ: ${s.service}`);
+            }
+            const serviceData = await Service.findById(s.service);
+            if (!serviceData) {
+              throw new Error(`Dịch vụ với ID ${s.service} không tồn tại.`);
+            }
+            return {
+              service: s.service,
+              quantity: s.quantity,
+              price: serviceData.price,
+            };
+          })
+        );
+      }
+
+      // Tạo sự kiện mới
+      const newEvent = new Event({
+        name,
+        date,
+        category,
+        location,
+        description,
+        image: imagePath,
+        services: populatedServices,
+        isPublic,
+        createdBy: userId,
+      });
+      const savedEvent = await newEvent.save();
+
+      res
+        .status(201)
+        .json({ message: "Tạo sự kiện thành công!", event: savedEvent });
+    } catch (error) {
+      console.error("Lỗi khi tạo sự kiện:", error.message);
+      res
+        .status(500)
+        .json({ message: "Lỗi khi tạo sự kiện!", error: error.message });
+    }
   },
 
   // Lấy danh sách sự kiện
@@ -155,75 +155,147 @@ const eventController = {
 
   // Cập nhật sự kiện
   updateEvent: async (req, res) => {
-    upload(req, res, async (err) => {
-      if (err) {
-        return res.status(400).json({ message: err });
+    try {
+      const { id } = req.params;
+      const {
+        isPublic,
+        name,
+        date,
+        category,
+        location,
+        description,
+        services = [],
+      } = req.body;
+      const userId = req.user.id;
+      const userRole = req.user.role;
+
+      if (!mongoose.Types.ObjectId.isValid(id)) {
+        return res.status(400).json({ message: "ID sự kiện không hợp lệ!" });
       }
 
-      try {
-        const { id } = req.params;
-        const {
-          isPublic,
-          name,
-          date,
-          category,
-          location,
-          description,
-          services = [],
-        } = req.body;
-        const userId = req.user.id;
-        const userRole = req.user.role;
-
-        if (!mongoose.Types.ObjectId.isValid(id)) {
-          return res.status(400).json({ message: "ID sự kiện không hợp lệ!" });
-        }
-
-        const event = await Event.findById(id);
-        if (!event) {
-          return res.status(404).json({ message: "Sự kiện không tồn tại!" });
-        }
-
-        // Kiểm tra quyền truy cập
-        if (
-          !event.isPublic &&
-          event.createdBy.toString() !== userId &&
-          userRole !== "admin"
-        ) {
-          return res
-            .status(403)
-            .json({ message: "Bạn không có quyền xem sự kiện này!" });
-        }
-
-        let imagePath = event.image;
-        if (req.file) {
-          imagePath = `/uploads/${req.file.filename}`;
-        }
-
-        const updatedData = {
-          name,
-          date,
-          category,
-          location,
-          description,
-          image: imagePath,
-          services,
-          isPublic,
-        };
-
-        const updatedEvent = await Event.findByIdAndUpdate(id, updatedData, {
-          new: true,
-        }).populate("category", "name");
-
-        res
-          .status(200)
-          .json({ message: "Cập nhật sự kiện thành công!", event: updatedEvent });
-      } catch (error) {
-        console.error("Lỗi khi cập nhật sự kiện:", error.message);
-        res
-          .status(500)
-          .json({ message: "Lỗi khi cập nhật sự kiện!", error: error.message });
+      const event = await Event.findById(id);
+      if (!event) {
+        return res.status(404).json({ message: "Sự kiện không tồn tại!" });
       }
-    });
+
+      // Kiểm tra quyền truy cập
+      if (
+        !event.isPublic &&
+        event.createdBy.toString() !== userId &&
+        userRole !== "admin"
+      ) {
+        return res
+          .status(403)
+          .json({ message: "Bạn không có quyền cập nhật sự kiện này!" });
+      }
+
+      let imagePath = event.image;
+      if (req.file) {
+        imagePath = `/uploads/${req.file.filename}`;
+      }
+
+      const updatedData = {
+        name,
+        date,
+        category,
+        location,
+        description,
+        image: imagePath,
+        services,
+        isPublic,
+      };
+
+      const updatedEvent = await Event.findByIdAndUpdate(id, updatedData, {
+        new: true,
+      }).populate("category", "name");
+
+      res
+        .status(200)
+        .json({ message: "Cập nhật sự kiện thành công!", event: updatedEvent });
+    } catch (error) {
+      console.error("Lỗi khi cập nhật sự kiện:", error.message);
+      res
+        .status(500)
+        .json({ message: "Lỗi khi cập nhật sự kiện!", error: error.message });
+    }
+  },
+
+  updateEventPartial: async (req, res) => {
+    try {
+      const { id } = req.params;
+      const { name, date, location, description, category } = req.body;
+      const userId = req.user.id;
+      const userRole = req.user.role;
+
+      // Validate event ID
+      if (!mongoose.Types.ObjectId.isValid(id)) {
+        return res.status(400).json({ message: "ID sự kiện không hợp lệ!" });
+      }
+
+      // Check if event exists
+      const event = await Event.findById(id);
+      if (!event) {
+        return res.status(404).json({ message: "Sự kiện không tồn tại!" });
+      }
+
+      // Check permissions
+      if (
+        !event.isPublic &&
+        event.createdBy.toString() !== userId &&
+        userRole !== "admin"
+      ) {
+        return res
+          .status(403)
+          .json({ message: "Bạn không có quyền cập nhật sự kiện này!" });
+      }
+
+      // Prepare update data (only include fields that are provided)
+      const updatedData = {};
+
+      if (name !== undefined) updatedData.name = name;
+      if (date !== undefined) updatedData.date = date;
+      if (location !== undefined) updatedData.location = location;
+      if (description !== undefined) updatedData.description = description;
+      if (category !== undefined) {
+        if (!mongoose.Types.ObjectId.isValid(category)) {
+          return res.status(400).json({ message: "ID danh mục không hợp lệ!" });
+        }
+        const existingCategory = await Category.findById(category);
+        if (!existingCategory) {
+          return res.status(404).json({ message: "Danh mục không tồn tại!" });
+        }
+        updatedData.category = category;
+      }
+
+      // Handle image update and cleanup
+      if (req.file) {
+        // If there's an existing image, delete it
+        if (event.image) {
+          const oldImagePath = path.join(__dirname, "..", event.image); // Adjust path based on your project structure
+          try {
+            await fs.unlink(oldImagePath);
+          } catch (err) {
+            console.error(`Failed to delete old image: ${oldImagePath}`, err);
+            // Don't throw an error; proceed with update even if deletion fails
+          }
+        }
+        updatedData.image = `/uploads/${req.file.filename}`;
+      }
+
+      // Update the event with only the provided fields
+      const updatedEvent = await Event.findByIdAndUpdate(id, updatedData, {
+        new: true, // Return the updated document
+      }).populate("category", "name");
+
+      res
+        .status(200)
+        .json({ message: "Cập nhật sự kiện thành công!", event: updatedEvent });
+    } catch (error) {
+      console.error("Lỗi khi cập nhật sự kiện:", error.message);
+      res
+        .status(500)
+        .json({ message: "Lỗi khi cập nhật sự kiện!", error: error.message });
+    }
   },
 
   updateEventCategory: async (req, res) => {
@@ -232,38 +304,46 @@ const eventController = {
       const { category } = req.body;
       const userId = req.user.id;
       const userRole = req.user.role;
-  
+
       if (!mongoose.Types.ObjectId.isValid(id)) {
         return res.status(400).json({ message: "Invalid event ID!" });
       }
-  
+
       const event = await Event.findById(id);
       if (!event) {
         return res.status(404).json({ message: "Event not found!" });
       }
-  
+
       // Check access rights
       if (event.createdBy.toString() !== userId && userRole !== "admin") {
-        return res.status(403).json({ message: "You do not have permission to update this event!" });
+        return res
+          .status(403)
+          .json({
+            message: "You do not have permission to update this event!",
+          });
       }
-  
+
       // Check if the category is valid
       if (!mongoose.Types.ObjectId.isValid(category)) {
         return res.status(400).json({ message: "Invalid category ID!" });
       }
-  
+
       const existingCategory = await Category.findById(category);
       if (!existingCategory) {
         return res.status(404).json({ message: "Category not found!" });
       }
-  
+
       event.category = category;
       await event.save();
-  
-      res.status(200).json({ message: "Category updated successfully!", event });
+
+      res
+        .status(200)
+        .json({ message: "Category updated successfully!", event });
     } catch (error) {
       console.error("Error updating category:", error.message);
-      res.status(500).json({ message: "Error updating category!", error: error.message });
+      res
+        .status(500)
+        .json({ message: "Error updating category!", error: error.message });
     }
   },
 
@@ -273,25 +353,31 @@ const eventController = {
       const { isPublic } = req.body;
       const userId = req.user.id;
       const userRole = req.user.role;
-  
+
       if (!mongoose.Types.ObjectId.isValid(id)) {
         return res.status(400).json({ message: "Invalid event ID!" });
       }
-  
+
       const event = await Event.findById(id);
       if (!event) {
         return res.status(404).json({ message: "Event not found!" });
       }
-  
+
       // Check access rights
       if (event.createdBy.toString() !== userId && userRole !== "admin") {
-        return res.status(403).json({ message: "You do not have permission to update this event!" });
+        return res
+          .status(403)
+          .json({
+            message: "You do not have permission to update this event!",
+          });
       }
-  
+
       event.isPublic = isPublic;
       await event.save();
-  
-      res.status(200).json({ message: "Event status updated successfully!", event });
+
+      res
+        .status(200)
+        .json({ message: "Event status updated successfully!", event });
     } catch (error) {
       console.error("Error updating event status:", error.message);
       res.status(500).json({ message: "Server error!", error: error.message });
@@ -527,9 +613,12 @@ const eventController = {
       events.forEach((event) => {
         event.services.forEach((service) => {
           if (!serviceUsage[service.service.name]) {
-            serviceUsage[service.service.name] = 0;
+            serviceUsage[service.service.name] = {
+              quantity: 0,
+              price: service.service.price,
+            };
           }
-          serviceUsage[service.service.name] += service.quantity;
+          serviceUsage[service.service.name].quantity += service.quantity;
         });
       });
 

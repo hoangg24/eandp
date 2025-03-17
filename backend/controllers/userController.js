@@ -178,13 +178,11 @@ const userController = {
         })
         .then(
           (response) => {
-            console.log("SUCCESS!", response.status, response.text);
             res
               .status(200)
               .json({ message: "Email sent to reset password" });
           },
           (error) => {
-            console.log("FAILED...", error);
             res
               .status(500)
               .json({ message: "Error sending email", error: error.message });

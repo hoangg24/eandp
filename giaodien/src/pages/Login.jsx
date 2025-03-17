@@ -30,7 +30,11 @@ const Login = () => {
       );
       const { token, user } = response.data;
       login(token);
-      navigate("/");
+      if (user.role === "admin") {
+        navigate("/admin/users");
+      } else {
+        navigate("/");
+      }
     } catch (error) {
       alert(error.response.data.message);
     } finally {
